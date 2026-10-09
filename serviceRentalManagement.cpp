@@ -1,128 +1,161 @@
 #include <iostream>
 #include <string>
 using namespace std;
-
 class Service
 {
-protected:
-    int serviceId;
+private:
     string serviceName;
-    string location;
+    string description;
     float price;
+    string location;
+    string availability;
 
 public:
-    Service();
-
-    void inputService();
-    void displayService();
+    Service()
+    {
+        serviceName = "";
+        description = "";
+        price = 0;
+        location = "";
+        availability = "";
+    }
+    void inputService()
+    {
+        cout << "\n ENTER SERVICE DETAILS" << endl;
+        cout << "Enter Service Name: ";
+        cin >> serviceName;
+        cout << "Enter Description: ";
+        cin >> description;
+        cout << "Enter Price: ";
+        cin >> price;
+        cout << "Enter Location: ";
+        cin >> location;
+        cout << "Enter Availability (Yes/No): ";
+        cin >> availability;
+    }
+    void displayService()
+    {
+        cout << "\n SERVICE DETAILS " << endl;
+        cout << "Service Name: " << serviceName << endl;
+        cout << "Description: " << description << endl;
+        cout << "Price: Rs. " << price << endl;
+        cout << "Location: " << location << endl;
+        cout << "Availability: " << availability << endl;
+    }
 };
-Service::Service()
-{
-    serviceId = 0;
-    serviceName = "";
-    location = "";
-    price = 0;
-}
-void Service::inputService()
-{
-    cout << "Enter Service ID: ";
-    cin >> serviceId;
-    cout << "Enter Service Name: ";
-    cin >> serviceName;
-    cout << "Enter Location: ";
-    cin >> location;
-    cout << "Enter Service Price: ";
-    cin >> price;
-}
-
-void Service::displayService()
-{
-    cout << "\nService ID: " << serviceId << endl;
-    cout << "Service Name: " << serviceName << endl;
-    cout << "Location: " << location << endl;
-    cout << "Service Price: Rs. " << price << endl;
-}
-
 class Property
 {
-protected:
-    int propertyId;
+private:
     string propertyType;
-    string location;
+    string description;
     float rent;
-
+    string location;
+    string availability;
 public:
-    Property();
-
-    void inputProperty();
-    void displayProperty();
+    Property()
+    {
+        propertyType = "";
+        description = "";
+        rent = 0;
+        location = "";
+        availability = "";
+    }
+    void inputProperty()
+    {
+        cout << "\n ENTER PROPERTY DETAILS " << endl;
+        cout << "Enter Property Type: ";
+        cin >> propertyType;
+        cout << "Enter Description: ";
+        cin >> description;
+        cout << "Enter Rent: ";
+        cin >> rent;
+        cout << "Enter Location: ";
+        cin >> location;
+        cout << "Enter Availability (Yes/No): ";
+        cin >> availability;
+    }
+    void displayProperty()
+    {
+        cout << "\n PROPERTY DETAILS " << endl;
+        cout << "Property Type: " << propertyType << endl;
+        cout << "Description: " << description << endl;
+        cout << "Rent: Rs. " << rent << endl;
+        cout << "Location: " << location << endl;
+        cout << "Availability: " << availability << endl;
+    }
 };
-
-Property::Property()
-{
-    propertyId = 0;
-    propertyType = "";
-    location = "";
-    rent = 0;
-}
-void Property::inputProperty()
-{
-    cout << "Enter Property ID: ";
-    cin >> propertyId;
-    cout << "Enter Property Type: ";
-    cin >> propertyType;
-    cout << "Enter Location: ";
-    cin >> location;
-    cout << "Enter Rent: ";
-    cin >> rent;
-}
-
-void Property::displayProperty()
-{
-    cout << "\nProperty ID: " << propertyId << endl;
-    cout << "Property Type: " << propertyType << endl;
-    cout << "Location: " << location << endl;
-    cout << "Rent: Rs. " << rent << endl;
-}
-
 class Vehicle
 {
-protected:
-    int vehicleId;
+private:
     string vehicleType;
+    string description;
+    float rent;
     string location;
-    float price;
-
+    string availability;
 public:
-    Vehicle();
+    Vehicle()
+    {
+        vehicleType = "";
+        description = "";
+        rent = 0;
+        location = "";
+        availability = "";
+    }
+    void inputVehicle()
+    {
+        cout << "\n ENTER VEHICLE DETAILS " << endl;
+        cout << "Enter Vehicle Type: ";
+        cin >> vehicleType;
+        cout << "Enter Description: ";
+        cin >> description;
+        cout << "Enter Rent: ";
+        cin >> rent;
+        cout << "Enter Location: ";
+        cin >> location;
+        cout << "Enter Availability (Yes/No): ";
+        cin >> availability;
+    }
 
-    void inputVehicle();
-    void displayVehicle();
+    void displayVehicle()
+    {
+        cout << "\n VEHICLE DETAILS" << endl;
+        cout << "Vehicle Type: " << vehicleType << endl;
+        cout << "Description: " << description << endl;
+        cout << "Rent: Rs. " << rent << endl;
+        cout << "Location: " << location << endl;
+        cout << "Availability: " << availability << endl;
+    }
 };
-Vehicle::Vehicle()
+int main()
 {
-    vehicleId = 0;
-    vehicleType = "";
-    location = "";
-    price = 0;
+    Service service;
+    Property property;
+    Vehicle vehicle;
+    int choice;
+    cout << "   TASKORA SERVICE & RENTAL MANAGEMENT" << endl;
+    cout << "\n1. Add Service";
+    cout << "\n2. Add Property";
+    cout << "\n3. Add Vehicle";
+    cout << "\n\nEnter your choice: ";
+    cin >> choice;
+    if(choice == 1)
+    {
+        service.inputService();
+        service.displayService();
+    }
+    else if(choice == 2)
+    {
+        property.inputProperty();
+        property.displayProperty();
+    }
+    else if(choice == 3)
+    {
+        vehicle.inputVehicle();
+        vehicle.displayVehicle();
+    }
+    else
+    {
+        cout << "\nInvalid choice." << endl;
+    }
+    return 0;
 }
-void Vehicle::inputVehicle()
-{
-    cout << "Enter Vehicle ID: ";
-    cin >> vehicleId;
-    cout << "Enter Vehicle Type: ";
-    cin >> vehicleType;
-    cout << "Enter Location: ";
-    cin >> location;
-    cout << "Enter Rental Price: ";
-    cin >> price;
-}
-
-void Vehicle::displayVehicle()
-{
-    cout << "\nVehicle ID: " << vehicleId << endl;
-    cout << "Vehicle Type: " << vehicleType << endl;
-    cout << "Location: " << location << endl;
-    cout << "Rental Price: Rs. " << price << endl;
-}
-
