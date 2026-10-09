@@ -44,14 +44,14 @@ private:
 public:
     void inputCustomer()
     {
-        inputUser();
+        User::inputUser();
         cout << "Enter Location: ";
         cin >> location;
     }
 
     void displayCustomer()
     {
-        displayUser();
+        User::displayUser();
         cout << "Location: " << location << endl;
     }
 };
@@ -65,24 +65,20 @@ private:
 public:
   void inputProvider()
     {
-        inputUser();
-
+        User::inputUser();
         cout << "Enter Service: ";
         cin >> service;
-
         cout << "Enter Distance: ";
         cin >> distance;
-
         cout << "Enter Price: ";
         cin >> price;
-
         cout << "Enter Rating: ";
         cin >> rating;
     }
 
     void displayProvider()
     {
-        displayUser();
+        User::displayUser();
 
         cout << "Service: " << service << endl;
         cout << "Distance: " << distance << " km" << endl;
