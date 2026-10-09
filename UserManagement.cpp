@@ -105,11 +105,11 @@ int main()
     c.displayCustomer();
 
 
-    cout << "\n===== SERVICE PROVIDER =====" << endl;
+    cout << "\nSERVICE PROVIDER" << endl;
 
     p.inputProvider();
 
-    cout << "\n===== PROVIDER DETAILS =====" << endl;
+    cout << "\n PROVIDER DETAILS " << endl;
 
     p.displayProvider();
 
