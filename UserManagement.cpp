@@ -8,9 +8,7 @@ protected:
     int id;
     string name;
     string phone;
-
 public:
-
     User()
     {
         id = 0;
@@ -27,10 +25,8 @@ public:
     {
         cout << "Enter User ID: ";
         cin >> id;
-
         cout << "Enter Name: ";
         cin >> name;
-
         cout << "Enter Phone: ";
         cin >> phone;
     }
@@ -41,32 +37,24 @@ public:
         cout << "Phone: " << phone << endl;
     }
 };
-
-
 class Customer : public User
 {
 private:
     string location;
-
 public:
-
     void inputCustomer()
     {
-        inputUser();
-
+        User::inputUser();
         cout << "Enter Location: ";
         cin >> location;
     }
 
     void displayCustomer()
     {
-        displayUser();
-
+        User::displayUser();
         cout << "Location: " << location << endl;
     }
 };
-
-
 class ServiceProvider : public User
 {
 private:
@@ -74,29 +62,23 @@ private:
     float distance;
     float price;
     float rating;
-
 public:
-
-    void inputProvider()
+  void inputProvider()
     {
-        inputUser();
-
+        User::inputUser();
         cout << "Enter Service: ";
         cin >> service;
-
         cout << "Enter Distance: ";
         cin >> distance;
-
         cout << "Enter Price: ";
         cin >> price;
-
         cout << "Enter Rating: ";
         cin >> rating;
     }
 
     void displayProvider()
     {
-        displayUser();
+        User::displayUser();
 
         cout << "Service: " << service << endl;
         cout << "Distance: " << distance << " km" << endl;
@@ -105,26 +87,25 @@ public:
     }
 };
 
-
 int main()
 {
     Customer c;
     ServiceProvider p;
 
-    cout << "===== CUSTOMER =====" << endl;
+    cout << " CUSTOMER " << endl;
 
     c.inputCustomer();
 
-    cout << "\n===== CUSTOMER DETAILS =====" << endl;
+    cout << "\n CUSTOMER DETAILS " << endl;
 
     c.displayCustomer();
 
 
-    cout << "\n===== SERVICE PROVIDER =====" << endl;
+    cout << "\nSERVICE PROVIDER" << endl;
 
     p.inputProvider();
 
-    cout << "\n===== PROVIDER DETAILS =====" << endl;
+    cout << "\n PROVIDER DETAILS " << endl;
 
     p.displayProvider();
 
