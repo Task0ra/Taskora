@@ -42,3 +42,109 @@ struct Provider *createProvider(int n)
 
         printf("\nEnter choice: ");
         scanf("%d", &choice);
+
+        switch (choice)
+        {
+            case 1:
+                strcpy(newNode->service, "electrician");
+                break;
+
+            case 2:
+                strcpy(newNode->service, "plumber");
+                break;
+
+            case 3:
+                strcpy(newNode->service, "maid");
+                break;
+
+            case 4:
+                strcpy(newNode->service, "house help");
+                break;
+
+            case 5:
+                strcpy(newNode->service, "nurse");
+                break;
+
+            case 6:
+                strcpy(newNode->service, "decoration");
+                break;
+
+            default:
+                printf("Invalid choice!");
+                free(newNode);
+                i--;
+                continue;
+        }
+        printf("Enter Distance: ");
+        scanf("%f", &newNode->distance);
+
+        printf("Enter Rating: ");
+        scanf("%f", &newNode->rating);
+
+        printf("Enter Price: ");
+        scanf("%f", &newNode->price);
+
+        newNode->next = NULL;
+
+        if (head == NULL)
+        {
+            head = newNode;
+        }
+        else
+        {
+            temp = head;
+
+            while (temp->next != NULL)
+            {
+                temp = temp->next;
+            }
+
+            temp->next = newNode;
+        }
+    }
+
+    return head;
+}
+
+void display(struct Provider *head)
+{
+    struct Provider *temp = head;
+
+    while (temp != NULL)
+    {
+        printf("\nID: %d", temp->id);
+        printf("\nName: %s", temp->name);
+        printf("\nService: %s", temp->service);
+        printf("\nDistance: %.1f km", temp->distance);
+        printf("\nRating: %.1f", temp->rating);
+        printf("\nPrice: Rs. %.2f\n", temp->price);
+
+        temp = temp->next;
+    }
+}
+
+void searchService(struct Provider *head, char service[])
+{
+    struct Provider *temp = head;
+    int found = 0;
+
+    while (temp != NULL)
+    {
+        if (strcmp(temp->service, service) == 0)
+        {
+            printf("\nName: %s", temp->name);
+            printf("\nDistance: %.1f km", temp->distance);
+            printf("\nRating: %.1f", temp->rating);
+            printf("\nPrice: Rs. %.2f\n", temp->price);
+
+            found = 1;
+        }
+
+        temp = temp->next;
+    }
+
+    if (found == 0)
+    {
+        printf("\nNo provider found.");
+    }
+}
