@@ -96,11 +96,11 @@ int main()
     Customer c;
     ServiceProvider p;
 
-    cout << "===== CUSTOMER =====" << endl;
+    cout << " CUSTOMER " << endl;
 
     c.inputCustomer();
 
-    cout << "\n===== CUSTOMER DETAILS =====" << endl;
+    cout << "\n CUSTOMER DETAILS " << endl;
 
     c.displayCustomer();
 
