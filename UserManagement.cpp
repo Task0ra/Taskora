@@ -55,3 +55,63 @@ public:
         cout << "Location: " << location << endl;
     }
 };
+class ServiceProvider : public User
+{
+private:
+    string service;
+    float distance;
+    float price;
+    float rating;
+public:
+  void inputProvider()
+    {
+        inputUser();
+
+        cout << "Enter Service: ";
+        cin >> service;
+
+        cout << "Enter Distance: ";
+        cin >> distance;
+
+        cout << "Enter Price: ";
+        cin >> price;
+
+        cout << "Enter Rating: ";
+        cin >> rating;
+    }
+
+    void displayProvider()
+    {
+        displayUser();
+
+        cout << "Service: " << service << endl;
+        cout << "Distance: " << distance << " km" << endl;
+        cout << "Price: Rs. " << price << endl;
+        cout << "Rating: " << rating << "/5" << endl;
+    }
+};
+
+int main()
+{
+    Customer c;
+    ServiceProvider p;
+
+    cout << "===== CUSTOMER =====" << endl;
+
+    c.inputCustomer();
+
+    cout << "\n===== CUSTOMER DETAILS =====" << endl;
+
+    c.displayCustomer();
+
+
+    cout << "\n===== SERVICE PROVIDER =====" << endl;
+
+    p.inputProvider();
+
+    cout << "\n===== PROVIDER DETAILS =====" << endl;
+
+    p.displayProvider();
+
+    return 0;
+}
