@@ -42,3 +42,36 @@ struct Provider *createProvider(int n)
 
         printf("\nEnter choice: ");
         scanf("%d", &choice);
+
+        switch (choice)
+        {
+            case 1:
+                strcpy(newNode->service, "electrician");
+                break;
+
+            case 2:
+                strcpy(newNode->service, "plumber");
+                break;
+
+            case 3:
+                strcpy(newNode->service, "maid");
+                break;
+
+            case 4:
+                strcpy(newNode->service, "house help");
+                break;
+
+            case 5:
+                strcpy(newNode->service, "nurse");
+                break;
+
+            case 6:
+                strcpy(newNode->service, "decoration");
+                break;
+
+            default:
+                printf("Invalid choice!");
+                free(newNode);
+                i--;
+                continue;
+        }
