@@ -75,3 +75,50 @@ struct Provider *createProvider(int n)
                 i--;
                 continue;
         }
+        printf("Enter Distance: ");
+        scanf("%f", &newNode->distance);
+
+        printf("Enter Rating: ");
+        scanf("%f", &newNode->rating);
+
+        printf("Enter Price: ");
+        scanf("%f", &newNode->price);
+
+        newNode->next = NULL;
+
+        if (head == NULL)
+        {
+            head = newNode;
+        }
+        else
+        {
+            temp = head;
+
+            while (temp->next != NULL)
+            {
+                temp = temp->next;
+            }
+
+            temp->next = newNode;
+        }
+    }
+
+    return head;
+}
+
+void display(struct Provider *head)
+{
+    struct Provider *temp = head;
+
+    while (temp != NULL)
+    {
+        printf("\nID: %d", temp->id);
+        printf("\nName: %s", temp->name);
+        printf("\nService: %s", temp->service);
+        printf("\nDistance: %.1f km", temp->distance);
+        printf("\nRating: %.1f", temp->rating);
+        printf("\nPrice: Rs. %.2f\n", temp->price);
+
+        temp = temp->next;
+    }
+}
