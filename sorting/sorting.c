@@ -122,3 +122,16 @@ void display(struct Provider *head)
         temp = temp->next;
     }
 }
+
+void Sorting(struct Provider *head, int choice)
+{
+    struct Provider *i;
+    struct Provider *j;
+
+    int tempId;
+    char tempName[30];
+    char tempService[20];
+
+    float tempDistance;
+    float tempRating;
+    float tempPrice;
