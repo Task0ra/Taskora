@@ -135,3 +135,63 @@ void Sorting(struct Provider *head, int choice)
     float tempDistance;
     float tempRating;
     float tempPrice;
+
+    for (i = head; i != NULL; i = i->next)
+    {
+        for (j = i->next; j != NULL; j = j->next)
+        {
+            int swap = 0;
+
+            //Sort by Distance
+            if (choice == 1 && i->distance > j->distance)
+            {
+                swap = 1;
+            }
+
+            // Sort by Price 
+            if (choice == 2 && i->price > j->price)
+            {
+                swap = 1;
+            }
+
+            // Sort by Rating 
+            if (choice == 3 && i->rating < j->rating)
+            {
+                swap = 1;
+            }
+
+            if (swap == 1)
+            {
+                // Swap ID 
+                tempId = i->id;
+                i->id = j->id;
+                j->id = tempId;
+
+                // Swap Name 
+                strcpy(tempName, i->name);
+                strcpy(i->name, j->name);
+                strcpy(j->name, tempName);
+
+                // Swap Service 
+                strcpy(tempService, i->service);
+                strcpy(i->service, j->service);
+                strcpy(j->service, tempService);
+
+                // Swap Distance 
+                tempDistance = i->distance;
+                i->distance = j->distance;
+                j->distance = tempDistance;
+
+                // Swap Rating 
+                tempRating = i->rating;
+                i->rating = j->rating;
+                j->rating = tempRating;
+
+                // Swap Price 
+                tempPrice = i->price;
+                i->price = j->price;
+                j->price = tempPrice;
+            }
+        }
+    }
+}
