@@ -195,3 +195,40 @@ void Sorting(struct Provider *head, int choice)
         }
     }
 }
+
+int main()
+{
+    struct Provider *head = NULL;
+
+    int n;
+    int choice;
+
+    printf("Enter number of providers: ");
+    scanf("%d", &n);
+
+    head = createProvider(n);
+
+    printf("\n\n===== ALL PROVIDERS =====\n");
+    display(head);
+
+    printf("\n===== SORT PROVIDERS =====");
+    printf("\n1. Sort by Distance");
+    printf("\n2. Sort by Price");
+    printf("\n3. Sort by Rating");
+
+    printf("\n\nEnter choice: ");
+    scanf("%d", &choice);
+
+    if (choice < 1 || choice > 3)
+    {
+        printf("\nInvalid choice.");
+        return 0;
+    }
+
+    Sorting(head, choice);
+
+    printf("\n\n===== SORTED PROVIDERS =====\n");
+    display(head);
+
+    return 0;
+}
