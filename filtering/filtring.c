@@ -105,3 +105,20 @@ struct Provider *createProvider(int n)
 
     return head;
 }
+
+void display(struct Provider *head)
+{
+    struct Provider *temp = head;
+
+    while (temp != NULL)
+    {
+        printf("\nID: %d", temp->id);
+        printf("\nName: %s", temp->name);
+        printf("\nService: %s", temp->service);
+        printf("\nDistance: %.1f km", temp->distance);
+        printf("\nRating: %.1f", temp->rating);
+        printf("\nPrice: Rs. %.2f\n", temp->price);
+
+        temp = temp->next;
+    }
+}
