@@ -122,3 +122,34 @@ void display(struct Provider *head)
         temp = temp->next;
     }
 }
+
+void filterProvider(struct Provider *head, float maxDistance, float maxPrice, float minRating)
+{
+    struct Provider *temp = head;
+    int found = 0;
+
+    while (temp != NULL)
+    {
+        if (temp->distance <= maxDistance &&
+            temp->price <= maxPrice &&
+            temp->rating >= minRating)
+        {
+            printf("\nID: %d", temp->id);
+            printf("\nName: %s", temp->name);
+            printf("\nService: %s", temp->service);
+            printf("\nDistance: %.1f km", temp->distance);
+            printf("\nRating: %.1f", temp->rating);
+            printf("\nPrice: Rs. %.2f\n", temp->price);
+
+            found = 1;
+        }
+
+        temp = temp->next;
+    }
+
+    if (found == 0)
+    {
+        printf("\nNo provider matches your filters.\n");
+    }
+}
+
