@@ -153,3 +153,19 @@ void filterProvider(struct Provider *head, float maxDistance, float maxPrice, fl
     }
 }
 
+int main()
+{
+    struct Provider *head = NULL;
+
+    int n;
+    float maxDistance;
+    float maxPrice;
+    float minRating;
+
+    printf("Enter number of service providers: ");
+    scanf("%d", &n);
+
+    head = createProvider(n);
+
+    printf("\n===== ALL SERVICE PROVIDERS =====\n");
+    display(head);
