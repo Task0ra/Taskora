@@ -169,3 +169,20 @@ int main()
 
     printf("\n===== ALL SERVICE PROVIDERS =====\n");
     display(head);
+    printf("\n===== FILTER SERVICES =====\n");
+
+    printf("Enter maximum distance (km): ");
+    scanf("%f", &maxDistance);
+
+    printf("Enter maximum price: ");
+    scanf("%f", &maxPrice);
+
+    printf("Enter minimum rating: ");
+    scanf("%f", &minRating);
+
+    printf("\n===== FILTERED RESULTS =====\n");
+
+    filterProvider(head, maxDistance, maxPrice, minRating);
+
+    return 0;
+}
