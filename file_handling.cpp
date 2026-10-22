@@ -403,31 +403,6 @@ void customerMenu() {
         cout << "Invalid choice.\n";
 }
 
-void customerLogin() {
-    string id = readText("Customer ID: ");
-    string password = readText("Password: ");
-
-    if (checkLogin("customers.txt", id, password, 0, 4)) {
-        cout << "Customer login successful!\n";
-        cout << "A real app can request phone location permission here.\n";
-        customerMenu();
-    } else {
-        cout << "Incorrect customer ID or password.\n";
-    }
-}
-
-void providerLogin() {
-    string id = readText("Provider ID: ");
-    string password = readText("Password: ");
-
-    if (checkLogin("providers.txt", id, password, 0, 5)) {
-        cout << "Provider login successful!\n";
-        cout << "A real app can request phone location permission here.\n";
-        providerMenu(id);
-    } else {
-        cout << "Incorrect provider ID or password.\n";
-    }
-}
 
 int main() {
     while (true) {
