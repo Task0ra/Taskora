@@ -114,3 +114,78 @@ Rental *createRentals(int n)
 
     return head;
 }
+
+void searchRental(Rental *head)
+{
+    Rental *temp = head;
+    int choice;
+    int found = 0;
+    char category[20];
+
+    printf("\nSearch Rental By Category:\n");
+    printf("1. Room\n");
+    printf("2. Flat\n");
+    printf("3. Shop\n");
+    printf("4. Bike\n");
+    printf("5. Scooter\n");
+    printf("6. Car\n");
+
+    printf("Enter your choice: ");
+    scanf("%d", &choice);
+
+    switch(choice)
+    {
+        case 1:
+            strcpy(category, "Room");
+            break;
+
+        case 2:
+            strcpy(category, "Flat");
+            break;
+
+        case 3:
+            strcpy(category, "Shop");
+            break;
+
+        case 4:
+            strcpy(category, "Bike");
+            break;
+
+        case 5:
+            strcpy(category, "Scooter");
+            break;
+
+        case 6:
+            strcpy(category, "Car");
+            break;
+
+        default:
+            printf("Invalid search choice!\n");
+            return;
+    }
+
+    while(temp != NULL)
+    {
+        if(strcmp(temp->category, category) == 0 &&
+           temp->available == 1)
+        {
+            printf("\nRental Found!\n");
+            printf("ID: %d\n", temp->id);
+            printf("Name/Model: %s\n", temp->name);
+            printf("Category: %s\n", temp->category);
+            printf("Location: %s\n", temp->location);
+            printf("Distance: %.2f km\n", temp->distance);
+            printf("Price per day: Rs. %.2f\n", temp->price);
+            printf("Rating: %.1f\n", temp->rating);
+
+            found = 1;
+        }
+
+        temp = temp->next;
+    }
+
+    if(found == 0)
+    {
+        printf("\nNo available rental found in this category.\n");
+    }
+}
