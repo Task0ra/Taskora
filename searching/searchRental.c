@@ -189,3 +189,62 @@ void searchRental(Rental *head)
         printf("\nNo available rental found in this category.\n");
     }
 }
+
+void displayRentals(Rental *head)
+{
+    Rental *temp = head;
+
+    printf("\n----- ALL RENTAL LISTINGS -----\n");
+
+    while(temp != NULL)
+    {
+        printf("\nID: %d\n", temp->id);
+        printf("Name/Model: %s\n", temp->name);
+        printf("Category: %s\n", temp->category);
+        printf("Location: %s\n", temp->location);
+        printf("Distance: %.2f km\n", temp->distance);
+        printf("Price per day: Rs. %.2f\n", temp->price);
+        printf("Rating: %.1f\n", temp->rating);
+        printf("Availability: %s\n",
+               temp->available == 1 ? "Available" : "Not Available");
+
+        temp = temp->next;
+    }
+}
+
+void freeRentals(Rental *head)
+{
+    Rental *temp;
+
+    while(head != NULL)
+    {
+        temp = head;
+        head = head->next;
+        free(temp);
+    }
+}
+
+int main()
+{
+    Rental *head;
+    int n;
+
+    printf("Enter number of rental listings: ");
+    scanf("%d", &n);
+
+    if(n <= 0)
+    {
+        printf("Invalid number of listings!\n");
+        return 0;
+    }
+
+    head = createRentals(n);
+
+    displayRentals(head);
+
+    searchRental(head);
+
+    freeRentals(head);
+
+    return 0;
+}
