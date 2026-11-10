@@ -98,3 +98,87 @@ struct Rental *createRentals(int n)
 
     return head;
 }
+
+void sortRentals(struct Rental *head, int choice)
+{
+    struct Rental *temp;
+    int swapped;
+
+    int id;
+    char name[30], category[20];
+    float distance, price, rating;
+
+    if(head == NULL)
+        return;
+
+    do
+    {
+        swapped = 0;
+        temp = head;
+
+        while(temp->next != NULL)
+        {
+            int condition = 0;
+
+            if(choice == 1 && temp->price > temp->next->price)
+                condition = 1;
+
+            else if(choice == 2 && temp->distance > temp->next->distance)
+                condition = 1;
+
+            else if(choice == 3 && temp->rating < temp->next->rating)
+                condition = 1;
+
+            if(condition)
+            {
+                id = temp->id;
+                temp->id = temp->next->id;
+                temp->next->id = id;
+
+                strcpy(name, temp->name);
+                strcpy(temp->name, temp->next->name);
+                strcpy(temp->next->name, name);
+
+                strcpy(category, temp->category);
+                strcpy(temp->category, temp->next->category);
+                strcpy(temp->next->category, category);
+
+                distance = temp->distance;
+                temp->distance = temp->next->distance;
+                temp->next->distance = distance;
+
+                price = temp->price;
+                temp->price = temp->next->price;
+                temp->next->price = price;
+
+                rating = temp->rating;
+                temp->rating = temp->next->rating;
+                temp->next->rating = rating;
+
+                swapped = 1;
+            }
+
+            temp = temp->next;
+        }
+
+    } while(swapped);
+}
+
+void displayRentals(struct Rental *head)
+{
+    struct Rental *temp = head;
+
+    printf("\n----- SORTED RENTALS -----\n");
+
+    while(temp != NULL)
+    {
+        printf("\nID: %d", temp->id);
+        printf("\nName: %s", temp->name);
+        printf("\nCategory: %s", temp->category);
+        printf("\nDistance: %.2f km", temp->distance);
+        printf("\nPrice: Rs. %.2f/day", temp->price);
+        printf("\nRating: %.1f\n", temp->rating);
+
+        temp = temp->next;
+    }
+}
