@@ -182,3 +182,52 @@ void displayRentals(struct Rental *head)
         temp = temp->next;
     }
 }
+
+void freeRentals(struct Rental *head)
+{
+    struct Rental *temp;
+
+    while(head != NULL)
+    {
+        temp = head;
+        head = head->next;
+        free(temp);
+    }
+}
+
+int main()
+{
+    struct Rental *head;
+    int n, choice;
+
+    printf("Enter number of rentals: ");
+    scanf("%d", &n);
+
+    if(n <= 0)
+    {
+        printf("Invalid number!\n");
+        return 0;
+    }
+
+    head = createRentals(n);
+
+    printf("\nSort By:\n");
+    printf("1. Price (Low to High)\n");
+    printf("2. Distance (Nearest First)\n");
+    printf("3. Rating (Highest First)\n");
+    printf("Enter choice: ");
+    scanf("%d", &choice);
+
+    if(choice < 1 || choice > 3)
+    {
+        printf("Invalid choice!\n");
+        freeRentals(head);
+        return 0;
+    }
+
+    sortRentals(head, choice);
+    displayRentals(head);
+    freeRentals(head);
+
+    return 0;
+}
