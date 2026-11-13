@@ -1,169 +1,202 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Taskora - Services & Rentals</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f5">
+  <title>Taskora — Find your nearby</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Taskora home">
+      <span class="brand-mark">t<span>·</span></span><span>taskora</span>
+    </a>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a class="active" href="#discover">Explore</a>
+      <a href="#how">How it works</a>
+      <a href="#become">Become a provider</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-btn notification" aria-label="Notifications">♧<i></i></button>
+      <button class="sign-in" id="signInBtn">Sign in</button>
+      <button class="avatar" id="accountBtn" aria-label="Account">A</button>
+    </div>
+  </header>
 
-    <!-- Navigation Bar -->
-    <header>
-        <div class="logo">TASKORA</div>
+  <main id="top">
+    <section class="hero" id="discover">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="live-dot"></span> YOUR NEIGHBORHOOD, MADE EASIER</div>
+        <h1>Good things are<br>closer than you <em>think.</em></h1>
+        <p>Find trusted local help and great rentals, all just around the corner.</p>
 
-        <nav>
-            <a href="#home">Home</a>
-            <a href="#services">Services</a>
-            <a href="#properties">Properties</a>
-            <a href="#vehicles">Vehicles</a>
-            <a href="#login">Login</a>
-        </nav>
-    </header>
-
-
-    <!-- Hero Section -->
-    <section class="hero" id="home">
-        <div class="hero-content">
-            <h1>Find What You Need, Near You.</h1>
-            <p>
-                Discover trusted local services and rental options
-                based on your location, budget and availability.
-            </p>
-
-            <div class="search-box">
-                <input type="text" placeholder="What are you looking for?">
-                <input type="text" placeholder="Enter location">
-                <button>Search</button>
-            </div>
+        <div class="search-box">
+          <label class="search-field">
+            <span class="search-icon">⌕</span>
+            <span>
+              <small>I'm looking for</small>
+              <input id="searchInput" type="search" placeholder="Try “plumber” or “studio flat”">
+            </span>
+          </label>
+          <span class="search-divider"></span>
+          <label class="location-field">
+            <span class="pin-icon">⌖</span>
+            <span>
+              <small>Near</small>
+              <input id="locationInput" type="text" value="Indiranagar, Bengaluru">
+            </span>
+            <button class="locate-btn" id="locateBtn" title="Use my location" aria-label="Use my location">◎</button>
+          </label>
+          <button class="search-submit" id="searchBtn">Search <span>↗</span></button>
         </div>
+
+        <div class="popular">
+          <span>Popular:</span>
+          <button data-query="Electrician">Electrician</button>
+          <button data-query="House cleaning">House cleaning</button>
+          <button data-query="Scooter">Scooter</button>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-label="Local service professional illustration">
+        <div class="sun"></div>
+        <div class="art-card art-card-one">
+          <span class="art-emoji">🪴</span>
+          <div><b>Good morning, Bengaluru</b><small>There's a lot nearby.</small></div>
+          <span class="green-check">✓</span>
+        </div>
+        <div class="art-person">
+          <div class="person-hair"></div><div class="person-face"></div>
+          <div class="person-body"><span class="person-tool">✳</span></div>
+          <div class="person-arm"></div><div class="person-leg leg-left"></div>
+          <div class="person-leg leg-right"></div>
+        </div>
+        <div class="art-card art-card-two">
+          <div class="mini-avatars"><span>👩🏽</span><span>👨🏻</span><span>👩🏾</span></div>
+          <div><b>Neighbors love Taskora</b><small>4.9 average rating</small></div>
+          <span class="star">★</span>
+        </div>
+        <span class="sparkle sparkle-one">✳</span><span class="sparkle sparkle-two">✦</span>
+        <span class="art-leaf leaf-a">❧</span><span class="art-leaf leaf-b">❧</span>
+      </div>
     </section>
 
+    <section class="content-wrap">
+      <div class="category-row" role="tablist" aria-label="Explore categories">
+        <button class="category active" data-mode="services" role="tab" aria-selected="true">
+          <span class="category-icon service-icon">✳</span><span>Services</span>
+        </button>
+        <button class="category" data-mode="properties" role="tab" aria-selected="false">
+          <span class="category-icon property-icon">⌂</span><span>Properties</span>
+        </button>
+        <button class="category" data-mode="vehicles" role="tab" aria-selected="false">
+          <span class="category-icon vehicle-icon">↗</span><span>Vehicles</span>
+        </button>
+        <div class="category-note"><span>✦</span> Curated for your neighborhood</div>
+      </div>
 
-    <!-- Main Categories -->
-    <section class="categories">
-
-        <!-- Services -->
-        <div class="category-card" id="services">
-            <div class="icon">🛠️</div>
-
-            <h2>Services</h2>
-
-            <p>
-                Find trusted local professionals for your everyday needs.
-            </p>
-
-            <div class="items">
-                <span>Electrician</span>
-                <span>Plumber</span>
-                <span>House Help</span>
-                <span>Caregiver</span>
-                <span>Decorator</span>
-            </div>
-
-            <button class="explore-btn">
-                Explore Services
-            </button>
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow small-eyebrow">A LITTLE CLOSER TO HOME</div>
+          <h2 id="sectionTitle">What do you need today?</h2>
+          <p id="sectionSubtitle">Thoughtful people and practical help, right around the corner.</p>
         </div>
+        <button class="view-map" id="mapBtn">
+          <span>⌖</span> View map <i class="toggle-dot"></i>
+        </button>
+      </div>
 
-
-        <!-- Properties -->
-        <div class="category-card" id="properties">
-            <div class="icon">🏠</div>
-
-            <h2>Properties</h2>
-
-            <p>
-                Find rooms, flats, shops and other properties available
-                for rent.
-            </p>
-
-            <div class="items">
-                <span>Rooms</span>
-                <span>Flats</span>
-                <span>Shops</span>
-                <span>Stores</span>
-                <span>Other Properties</span>
+      <div class="browse-layout">
+        <aside class="sidebar">
+          <div class="filter-head"><b>Filters</b><button id="clearFilters">Clear all</button></div>
+          <div class="filter-block">
+            <h3>Category</h3>
+            <div id="categoryFilters" class="check-list"></div>
+          </div>
+          <div class="filter-block">
+            <div class="filter-title"><h3>Price range</h3><span id="priceLabel">Up to ₹2,000</span></div>
+            <input id="priceRange" class="range" type="range" min="300" max="5000" step="100" value="2000">
+            <div class="range-labels"><span>₹300</span><span>₹5,000+</span></div>
+          </div>
+          <div class="filter-block">
+            <h3>Minimum rating</h3>
+            <div class="rating-options">
+              <button class="rating-filter selected" data-rating="0">Any</button>
+              <button class="rating-filter" data-rating="4">4.0+</button>
+              <button class="rating-filter" data-rating="4.5">4.5+</button>
             </div>
+          </div>
+          <div class="filter-block">
+            <h3>Availability</h3>
+            <label class="switch-row">Available today <input type="checkbox" id="availableFilter"><span class="switch"></span></label>
+          </div>
+          <div class="sidebar-note">
+            <span>✦</span><div><b>Every booking, protected.</b><small>Verified profiles and secure, upfront payments.</small></div>
+          </div>
+        </aside>
 
-            <button class="explore-btn">
-                Explore Properties
-            </button>
+        <div class="results-area">
+          <div class="results-toolbar">
+            <div><b id="resultCount">Showing nearby picks</b><span class="distance-note"> · within 10 km</span></div>
+            <label class="sort-label">Sort by
+              <select id="sortSelect">
+                <option value="recommended">Recommended</option>
+                <option value="distance">Nearest</option>
+                <option value="price">Price: low to high</option>
+                <option value="rating">Top rated</option>
+              </select>
+            </label>
+          </div>
+          <div class="mobile-filters">
+            <button id="mobileFilterBtn">☷ Filters</button>
+            <select id="mobileSort">
+              <option value="recommended">Recommended</option>
+              <option value="distance">Nearest</option>
+              <option value="price">Price: low to high</option>
+              <option value="rating">Top rated</option>
+            </select>
+          </div>
+          <div class="listing-grid" id="listingGrid"></div>
+          <div class="empty-state hidden" id="emptyState">
+            <div>⌕</div><h3>No nearby matches yet</h3>
+            <p>Try a different search or clear a few filters.</p>
+            <button class="primary-btn" id="emptyClear">Clear filters</button>
+          </div>
+          <button class="load-more" id="loadMore">You're all caught up <span>✦</span></button>
         </div>
-
-
-        <!-- Vehicles -->
-        <div class="category-card" id="vehicles">
-            <div class="icon">🚗</div>
-
-            <h2>Vehicles</h2>
-
-            <p>
-                Rent bikes, scooters, cars and other vehicles near you.
-            </p>
-
-            <div class="items">
-                <span>Bikes</span>
-                <span>Scooters</span>
-                <span>Cars</span>
-                <span>Other Vehicles</span>
-            </div>
-
-            <button class="explore-btn">
-                Explore Vehicles
-            </button>
-        </div>
-
+      </div>
     </section>
 
-
-    <!-- Why Taskora -->
-    <section class="why-taskora">
-
-        <h2>Why Choose Taskora?</h2>
-
-        <div class="features">
-
-            <div class="feature">
-                <h3>📍 Location Based</h3>
-                <p>
-                    Find services and rentals near your location.
-                </p>
-            </div>
-
-            <div class="feature">
-                <h3>⭐ Ratings & Reviews</h3>
-                <p>
-                    Compare providers using ratings and customer reviews.
-                </p>
-            </div>
-
-            <div class="feature">
-                <h3>✓ Verified Providers</h3>
-                <p>
-                    Connect with verified service providers and owners.
-                </p>
-            </div>
-
-            <div class="feature">
-                <h3>🔒 Secure Booking</h3>
-                <p>
-                    Book services and rentals through a secure booking flow.
-                </p>
-            </div>
-
-        </div>
-
+    <section class="provider-banner" id="become">
+      <div class="banner-icon">✳</div>
+      <div>
+        <small>GOOD AT WHAT YOU DO?</small>
+        <h2>Your next customer is closer than you think.</h2>
+        <p>Join Taskora and grow your local business, one happy booking at a time.</p>
+      </div>
+      <button id="providerBtn">List your service <span>↗</span></button>
+      <div class="banner-orb"></div>
     </section>
 
-
-    <!-- Footer -->
-    <footer>
-        <h2>TASKORA</h2>
-        <p>Location-Based Rental & Local Service Platform</p>
-        <p>© 2026 Taskora. All Rights Reserved.</p>
+    <footer id="how">
+      <a class="brand" href="#top"><span class="brand-mark">t<span>·</span></span><span>taskora</span></a>
+      <span>Made for the places we call home.</span>
+      <span>© 2025 Taskora</span>
     </footer>
-<script src="script.js"></script>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <section class="booking-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+      <div id="modalContent"></div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
