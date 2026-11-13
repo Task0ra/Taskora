@@ -285,3 +285,130 @@ function openBooking(id) {
 function closeModal() {
   $("#modalBackdrop").classList.add("hidden");
 }
+document.querySelectorAll(".category").forEach((button) => {
+  button.addEventListener("click", () => setMode(button.dataset.mode));
+});
+
+$("#searchBtn").onclick = () => {
+  query = $("#searchInput").value.trim();
+  render();
+  $(".results-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+$("#searchInput").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") $("#searchBtn").click();
+});
+
+document.querySelectorAll(".popular button").forEach((button) => {
+  button.onclick = () => {
+    $("#searchInput").value = button.dataset.query;
+    query = button.dataset.query;
+    render();
+  };
+});
+
+$("#priceRange").oninput = (event) => {
+  priceMax = Number(event.target.value);
+  updatePrice();
+  render();
+};
+
+document.querySelectorAll(".rating-filter").forEach((button) => {
+  button.onclick = () => {
+    document.querySelectorAll(".rating-filter").forEach((filter) => {
+      filter.classList.remove("selected");
+    });
+
+    button.classList.add("selected");
+    minRating = Number(button.dataset.rating);
+    render();
+  };
+});
+
+$("#availableFilter").onchange = (event) => {
+  onlyAvailable = event.target.checked;
+  render();
+};
+
+$("#sortSelect").onchange = render;
+
+$("#mobileSort").onchange = (event) => {
+  $("#sortSelect").value = event.target.value;
+  render();
+};
+
+function clearFilters() {
+  priceMax = mode === "services" ? 2000 : 50000;
+  $("#priceRange").value = priceMax;
+  minRating = 0;
+  onlyAvailable = false;
+  query = "";
+  $("#availableFilter").checked = false;
+  $("#searchInput").value = "";
+
+  document.querySelectorAll(".rating-filter").forEach((button) => {
+    button.classList.toggle("selected", button.dataset.rating === "0");
+  });
+
+  renderFilters();
+  updatePrice();
+  render();
+}
+
+$("#clearFilters").onclick = clearFilters;
+$("#emptyClear").onclick = clearFilters;
+
+$("#mapBtn").onclick = () => {
+  mapOn = !mapOn;
+  $("#mapBtn").classList.toggle("active", mapOn);
+  toast(mapOn
+    ? "Map preview enabled · showing nearby picks"
+    : "Map preview closed");
+};
+
+$("#locateBtn").onclick = () => {
+  if (!navigator.geolocation) {
+    toast("Location is not available in this browser");
+    return;
+  }
+
+  toast("Finding your location…");
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      $("#locationInput").value =
+        `${position.coords.latitude.toFixed(3)}, ` +
+        `${position.coords.longitude.toFixed(3)}`;
+      toast("Location updated");
+    },
+    () => toast("Could not access location. You can enter it manually.")
+  );
+};
+
+$("#mobileFilterBtn").onclick = () => {
+  $(".sidebar").classList.toggle("mobile-open");
+};
+
+$("#modalClose").onclick = closeModal;
+
+$("#modalBackdrop").onclick = (event) => {
+  if (event.target === $("#modalBackdrop")) closeModal();
+};
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeModal();
+});
+
+$("#signInBtn").onclick = () =>
+  toast("Sign in is a demo feature in this prototype");
+
+$("#accountBtn").onclick = () =>
+  toast(`${favorites.size} saved pick${favorites.size === 1 ? "" : "s"} · demo account`);
+
+$("#providerBtn").onclick = () =>
+  toast("Provider registration is ready to connect to your backend");
+
+$("#loadMore").onclick = () =>
+  toast("You’re seeing all available picks for this area");
+
+setMode("services");
