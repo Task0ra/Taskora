@@ -63,3 +63,131 @@ function renderFilters() {
     input.addEventListener("change", render);
   });
 }
+function render() {
+  const selectedCategories = [
+    ...$("#categoryFilters").querySelectorAll("input:checked")
+  ].map((input) => input.value);
+
+  let rows = listings.filter((item) =>
+    item.mode === mode &&
+    (!selectedCategories.length || selectedCategories.includes(item.category)) &&
+    item.price <= priceMax &&
+    item.rating >= minRating &&
+    (!onlyAvailable || item.available) &&
+    (!query || `${item.title} ${item.provider} ${item.category} ${item.desc}`
+      .toLowerCase()
+      .includes(query.toLowerCase()))
+  );
+
+  const sort = $("#sortSelect").value;
+  if (sort === "distance") rows.sort((a, b) => a.distance - b.distance);
+  if (sort === "price") rows.sort((a, b) => a.price - b.price);
+  if (sort === "rating") rows.sort((a, b) => b.rating - a.rating);
+
+  $("#resultCount").textContent =
+    `${rows.length} nearby ${rows.length === 1 ? "pick" : "picks"}`;
+
+  grid.innerHTML = rows.map((item) => `
+    <article class="listing-card">
+      <div class="card-image" style="background-image:url('${item.image}')">
+        <span class="card-badge">${item.badge}</span>
+        <button
+          class="favorite-btn ${favorites.has(item.id) ? "active" : ""}"
+          data-fav="${item.id}"
+          aria-label="${favorites.has(item.id) ? "Remove from" : "Add to"} favorites">
+          ${favorites.has(item.id) ? "♥" : "♡"}
+        </button>
+        <span class="card-image-footer">⌖ ${item.distance} km away</span>
+      </div>
+      <div class="card-body">
+        <div class="provider-line">
+          <span class="provider-name">${item.provider}</span>
+          <span class="verified">✓ Verified</span>
+        </div>
+        <h3 class="card-title">${item.title}</h3>
+        <div class="card-meta">
+          <span>${item.category} · ${item.available ? "Today" : "Tomorrow"}</span>
+          <span class="rating">★ ${item.rating}
+            <span style="color:#98a098;font-weight:400">(${item.reviews})</span>
+          </span>
+        </div>
+        <div class="card-bottom">
+          <span class="price">${money(item.price)}<small> / ${item.unit}</small></span>
+          <button class="book-btn" data-book="${item.id}">
+            ${mode === "services" ? "Book now" : "View & book"}
+          </button>
+        </div>
+      </div>
+    </article>
+  `).join("");
+
+  $("#emptyState").classList.toggle("hidden", rows.length > 0);
+  grid.classList.toggle("hidden", rows.length === 0);
+  $("#loadMore").classList.toggle("hidden", rows.length === 0);
+
+  grid.querySelectorAll("[data-fav]").forEach((button) => {
+    button.onclick = () => toggleFavorite(Number(button.dataset.fav));
+  });
+
+  grid.querySelectorAll("[data-book]").forEach((button) => {
+    button.onclick = () => openBooking(Number(button.dataset.book));
+  });
+}
+
+function setMode(nextMode) {
+  mode = nextMode;
+
+  document.querySelectorAll(".category").forEach((button) => {
+    const active = button.dataset.mode === mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+
+  $("#sectionTitle").textContent = modeInfo[mode].title;
+  $("#sectionSubtitle").textContent = modeInfo[mode].subtitle;
+
+  $("#searchInput").placeholder =
+    mode === "services"
+      ? "Try “plumber” or “house cleaning”"
+      : mode === "properties"
+        ? "Try “studio” or “2 BHK”"
+        : "Try “scooter” or “car”";
+
+  $("#searchInput").value = "";
+  query = "";
+  priceMax = mode === "services" ? 2000 : 50000;
+  $("#priceRange").max = mode === "services" ? 5000 : 50000;
+  $("#priceRange").min = mode === "services" ? 300 : 500;
+  $("#priceRange").step = mode === "services" ? 100 : 500;
+  $("#priceRange").value = priceMax;
+
+  updatePrice();
+  renderFilters();
+  render();
+}
+
+function updatePrice() {
+  $("#priceLabel").textContent =
+    `Up to ${money(priceMax)}${mode !== "services" ? " / mo" : ""}`;
+}
+
+function toast(message) {
+  const element = $("#toast");
+  element.textContent = message;
+  element.classList.add("show");
+
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => element.classList.remove("show"), 2500);
+}
+
+function toggleFavorite(id) {
+  if (favorites.has(id)) {
+    favorites.delete(id);
+    toast("Removed from your saved picks");
+  } else {
+    favorites.add(id);
+    toast("Saved to your favorites ♡");
+  }
+
+  render();
+}
