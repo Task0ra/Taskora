@@ -191,3 +191,97 @@ function toggleFavorite(id) {
 
   render();
 }
+function openBooking(id) {
+  const item = listings.find((listing) => listing.id === id);
+  const isService = mode === "services";
+
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">
+      ${isService ? "BOOK A LOCAL PRO" : "RESERVE YOUR PICK"}
+    </div>
+    <h2 id="modalTitle">
+      ${isService ? "Request a booking" : "Start your booking"}
+    </h2>
+    <p class="modal-description">
+      ${item.title} · ${item.provider} · ${item.distance} km away
+    </p>
+    <div class="booking-summary">
+      <span>
+        ${isService ? "Starting price" : "Price"}
+        <small>${isService ? "(final quote may vary)" : ""}</small>
+      </span>
+      <b>${money(item.price)} / ${item.unit}</b>
+    </div>
+    <form id="bookingForm">
+      <div class="booking-fields">
+        <label>
+          ${isService ? "What do you need help with?" : "Choose your start date"}
+          <input
+            id="bookingDetail"
+            required
+            ${isService
+              ? 'placeholder="Tell us a little about the job"'
+              : 'type="date"'}
+          >
+        </label>
+        <label>
+          Preferred time
+          <select id="bookingTime">
+            <option>Morning · 9 am – 12 pm</option>
+            <option>Afternoon · 12 pm – 4 pm</option>
+            <option>Evening · 4 pm – 7 pm</option>
+          </select>
+        </label>
+        <label>
+          Your phone number
+          <input
+            type="tel"
+            required
+            placeholder="+91 98765 43210"
+            pattern="[+0-9() -]{8,}"
+          >
+        </label>
+      </div>
+      <div class="payment-note">
+        <span>▣</span>
+        <div>
+          <b>Simulated secure prepayment</b>
+          Payment is for demo purposes only. No real money will be charged.
+        </div>
+      </div>
+      <button class="modal-submit" type="submit">
+        Confirm & pay ${money(item.price)} <span> · demo</span>
+      </button>
+    </form>
+  `;
+
+  $("#modalBackdrop").classList.remove("hidden");
+
+  $("#bookingForm").onsubmit = (event) => {
+    event.preventDefault();
+
+    const bookingCode =
+      `TK-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+    $("#modalContent").innerHTML = `
+      <div class="success-view">
+        <div class="success-mark">✓</div>
+        <h2 id="modalTitle">You're all set!</h2>
+        <p>
+          Your request for <b>${item.title}</b> has been sent to
+          ${item.provider}. The demo payment is marked as paid and your
+          booking is awaiting confirmation.
+        </p>
+        <span class="booking-id">Booking ref · ${bookingCode}</span>
+        <p>We'll let you know as soon as they respond.</p>
+        <button class="modal-submit" id="doneBtn">Back to exploring</button>
+      </div>
+    `;
+
+    $("#doneBtn").onclick = closeModal;
+  };
+}
+
+function closeModal() {
+  $("#modalBackdrop").classList.add("hidden");
+}
