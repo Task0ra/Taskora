@@ -295,7 +295,165 @@ function openBooking(id) {
 }
 
 function closeModal() {
-  $("#modalBackdrop").classList.add("hidden");
+   // ===============================
+// TASKORA AUTHENTICATION
+// ===============================
+
+let currentUser = null;
+
+function showAuthForm(type = "login") {
+  const isSignup = type === "signup";
+
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">TASKORA ACCOUNT</div>
+    <h2 id="modalTitle">${isSignup ? "Create your account" : "Welcome back"}</h2>
+    <p class="modal-description">
+      ${isSignup ? "Join Taskora and discover services around you." : "Sign in to continue exploring Taskora."}
+    </p>
+
+    <form id="authForm">
+      <div class="booking-fields">
+        ${isSignup ? `
+          <label>
+            Full name
+            <input id="authName" type="text" required placeholder="Your name">
+          </label>
+        ` : ""}
+
+        <label>
+          Email
+          <input id="authEmail" type="email" required placeholder="you@example.com">
+        </label>
+
+        <label>
+          Password
+          <input id="authPassword" type="password" required minlength="6"
+            placeholder="Enter password">
+        </label>
+      </div>
+
+      <button class="modal-submit" type="submit">
+        ${isSignup ? "Create account" : "Sign in"}
+      </button>
+    </form>
+
+    <p style="text-align:center;margin-top:18px">
+      ${isSignup
+        ? `Already have an account?
+           <button type="button" id="switchAuth"
+             style="border:0;background:none;color:#315d46;font-weight:700">
+             Sign in
+           </button>`
+        : `New to Taskora?
+           <button type="button" id="switchAuth"
+             style="border:0;background:none;color:#315d46;font-weight:700">
+             Create account
+           </button>`
+      }
+    </p>
+  `;
+
+  $("#modalBackdrop").classList.remove("hidden");
+
+  $("#switchAuth").onclick = () =>
+    showAuthForm(isSignup ? "login" : "signup");
+
+  $("#authForm").onsubmit = async (event) => {
+    event.preventDefault();
+
+    const email = $("#authEmail").value.trim();
+    const password = $("#authPassword").value;
+    const fullName = isSignup ? $("#authName").value.trim() : "";
+
+    const submitButton = $("#authForm").querySelector(".modal-submit");
+    submitButton.disabled = true;
+    submitButton.textContent = "Please wait...";
+
+    try {
+      if (isSignup) {
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName }
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.session) {
+          await saveProfile(data.user, fullName);
+          currentUser = data.user;
+          toast("Account created successfully!");
+          closeModal();
+        } else {
+          $("#modalContent").innerHTML = `
+            <div class="success-view">
+              <div class="success-mark">✓</div>
+              <h2 id="modalTitle">Check your email</h2>
+              <p>We've sent you a confirmation link. Confirm your email before signing in.</p>
+              <button class="modal-submit" onclick="showAuthForm('login')">
+                Back to sign in
+              </button>
+            </div>
+          `;
+        }
+      } else {
+        const { data, error } =
+          await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+
+        if (error) throw error;
+
+        currentUser = data.user;
+        await saveProfile(data.user);
+        toast("Signed in successfully!");
+        closeModal();
+      }
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      if ($("#authForm")) {
+        const button = $("#authForm").querySelector(".modal-submit");
+        if (button) button.disabled = false;
+      }
+    }
+  };
+}
+
+// Create/update the logged-in user's profile
+async function saveProfile(user, fullName = "") {
+  if (!user) return;
+
+  const profileName =
+    fullName || user.user_metadata?.full_name || "";
+
+  const { error } = await supabaseClient
+    .from("profiles")
+    .upsert({
+      id: user.id,
+      full_name: profileName,
+      role: "customer"
+    });
+
+  if (error) {
+    console.error("Profile error:", error.message);
+  }
+}
+
+// Restore session when page reloads
+async function checkCurrentUser() {
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if (!error && data.user) {
+    currentUser = data.user;
+    await saveProfile(data.user);
+  }
+}
+
+checkCurrentUser();
 }
 document.querySelectorAll(".category").forEach((button) => {
   button.addEventListener("click", () => setMode(button.dataset.mode));
