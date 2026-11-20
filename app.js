@@ -294,74 +294,56 @@ function openBooking(id) {
   };
 }
 
-function closeModal(){
+function closeModal() {
+  $("#modalBackdrop").classList.add("hidden");
+}
 
 let currentUser = null;
+
+
+// ==========================
+// LOGIN / SIGNUP FORM
+// ==========================
 
 function showAuthForm(type = "login") {
   const isSignup = type === "signup";
 
   $("#modalContent").innerHTML = `
     <div class="modal-kicker">TASKORA ACCOUNT</div>
-    <h2 id="modalTitle">${isSignup ? "Create your account" : "Welcome back"}</h2>
+
+    <h2 id="modalTitle">
+      ${isSignup ? "Create your account" : "Welcome back"}
+    </h2>
+
     <p class="modal-description">
-      ${isSignup ? "Join Taskora and discover services around you." : "Sign in to continue exploring Taskora."}
+      ${isSignup
+        ? "Join Taskora and discover services around you."
+        : "Sign in to continue exploring Taskora."}
     </p>
 
     <form id="authForm">
       <div class="booking-fields">
+
         ${isSignup ? `
           <label>
             Full name
-            <input id="authName" type="text" required placeholder="Your name">
+            <input id="authName" type="text"
+              required placeholder="Your name">
           </label>
         ` : ""}
-        
-        async function saveProfile(user, fullName = "") {
-
-    if (!user) return;
-
-    const profile = {
-
-        id: user.id,
-
-        role: "customer"
-
-    };
-
-    const name = fullName || user.user_metadata?.full_name;
-
-    if (name) {
-
-        profile.full_name = name;
-
-    }
-
-    const { error } = await supabaseClient
-
-        .from("profiles")
-
-        .insert(profile);
-
-    if (error && error.code !== "23505") {
-
-        console.error("Profile error:", error.message);
-
-    }
-
-}
-
 
         <label>
           Email
-          <input id="authEmail" type="email" required placeholder="you@example.com">
+          <input id="authEmail" type="email"
+            required placeholder="you@example.com">
         </label>
 
         <label>
           Password
-          <input id="authPassword" type="password" required minlength="6"
-            placeholder="Enter password">
+          <input id="authPassword" type="password"
+            required minlength="6" placeholder="Enter password">
         </label>
+
       </div>
 
       <button class="modal-submit" type="submit">
@@ -373,64 +355,90 @@ function showAuthForm(type = "login") {
       ${isSignup
         ? `Already have an account?
            <button type="button" id="switchAuth"
-             style="border:0;background:none;color:#315d46;font-weight:700">
-             Sign in
-           </button>`
+           style="border:0;background:none;color:#315d46;font-weight:700">
+           Sign in</button>`
         : `New to Taskora?
            <button type="button" id="switchAuth"
-             style="border:0;background:none;color:#315d46;font-weight:700">
-             Create account
-           </button>`
+           style="border:0;background:none;color:#315d46;font-weight:700">
+           Create account</button>`
       }
     </p>
   `;
 
   $("#modalBackdrop").classList.remove("hidden");
 
-  $("#switchAuth").onclick = () =>
+  // Switch between login and signup
+  $("#switchAuth").onclick = () => {
     showAuthForm(isSignup ? "login" : "signup");
+  };
 
+  // Form submission
   $("#authForm").onsubmit = async (event) => {
     event.preventDefault();
 
     const email = $("#authEmail").value.trim();
     const password = $("#authPassword").value;
-    const fullName = isSignup ? $("#authName").value.trim() : "";
+    const fullName = isSignup
+      ? $("#authName").value.trim()
+      : "";
 
-    const submitButton = $("#authForm").querySelector(".modal-submit");
+    const submitButton =
+      $("#authForm").querySelector(".modal-submit");
+
     submitButton.disabled = true;
     submitButton.textContent = "Please wait...";
 
     try {
+
+      // SIGNUP
       if (isSignup) {
-        const { data, error } = await supabaseClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName }
-          }
-        });
+
+        const { data, error } =
+          await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName
+              }
+            }
+          });
 
         if (error) throw error;
 
-        if (data.session) {
-          await saveProfile(data.user, fullName);
+        if (data.session && data.user) {
+
           currentUser = data.user;
+          await saveProfile(data.user, fullName);
+
           toast("Account created successfully!");
           closeModal();
+
         } else {
+
           $("#modalContent").innerHTML = `
             <div class="success-view">
               <div class="success-mark">✓</div>
-              <h2 id="modalTitle">Check your email</h2>
-              <p>We've sent you a confirmation link. Confirm your email before signing in.</p>
-              <button class="modal-submit" onclick="showAuthForm('login')">
+              <h2>Check your email</h2>
+              <p>
+                We've sent you a confirmation link.
+                Confirm your email before signing in.
+              </p>
+              <button class="modal-submit" id="backToLogin">
                 Back to sign in
               </button>
             </div>
           `;
+
+          $("#backToLogin").onclick = () =>
+            showAuthForm("login");
         }
-      } else {
+
+      }
+
+      // LOGIN
+      else {
+
         const { data, error } =
           await supabaseClient.auth.signInWithPassword({
             email,
@@ -440,53 +448,81 @@ function showAuthForm(type = "login") {
         if (error) throw error;
 
         currentUser = data.user;
+
         await saveProfile(data.user);
+
         toast("Signed in successfully!");
         closeModal();
       }
+
     } catch (error) {
+
       alert(error.message);
+
     } finally {
-      if ($("#authForm")) {
-        const button = $("#authForm").querySelector(".modal-submit");
-        if (button) button.disabled = false;
+
+      const form = $("#authForm");
+
+      if (form) {
+        const button = form.querySelector(".modal-submit");
+
+        if (button) {
+          button.disabled = false;
+          button.textContent =
+            isSignup ? "Create account" : "Sign in";
+        }
       }
     }
   };
 }
 
-// Create/update the logged-in user's profile
+
+// ==========================
+// SAVE USER PROFILE
+// ==========================
+
 async function saveProfile(user, fullName = "") {
   if (!user) return;
 
-  const profileName =
-    fullName || user.user_metadata?.full_name || "";
+  const profile = {
+    id: user.id,
+    role: "customer"
+  };
+
+  const name =
+    fullName || user.user_metadata?.full_name;
+
+  if (name) {
+    profile.full_name = name;
+  }
 
   const { error } = await supabaseClient
     .from("profiles")
-    .upsert({
-      id: user.id,
-      full_name: profileName,
-      role: "customer"
-    });
+    .insert(profile);
 
-  if (error) {
+  // Ignore duplicate profiles
+  if (error && error.code !== "23505") {
     console.error("Profile error:", error.message);
   }
 }
 
-// Restore session when page reloads
+
+// ==========================
+// RESTORE LOGIN SESSION
+// ==========================
+
 async function checkCurrentUser() {
-  const { data, error } = await supabaseClient.auth.getUser();
+  const { data, error } =
+    await supabaseClient.auth.getUser();
 
   if (!error && data.user) {
     currentUser = data.user;
-    await saveProfile(data.user);
   }
 }
 
 checkCurrentUser();
-}
+
+    
 document.querySelectorAll(".category").forEach((button) => {
   button.addEventListener("click", () => setMode(button.dataset.mode));
 });
