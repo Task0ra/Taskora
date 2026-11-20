@@ -1,15 +1,14 @@
-
-
 const SUPABASE_URL = "https://gtqumfbsiwooeautczdz.supabase.co";
-
 const SUPABASE_KEY = "sb_publishable__A4qeS1Pa-U87XIlOWOQ5g_AJd-TCIr";
 
-const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-);
+let supabaseClient = null;
+try {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  console.log("Taskora Supabase connected!");
+} catch (e) {
+  console.error("Supabase failed to load:", e);
+}
 
-console.log("Taskora Supabase connected!");
 const listings = [
   { id: 1, mode: "services", category: "Electrician", title: "QuickFix Electricals", provider: "Ravi Kumar", distance: 1.2, price: 499, unit: "visit", rating: 4.9, reviews: 128, available: true, badge: "Top rated", image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=85", desc: "Friendly, verified electrical repairs with upfront pricing. From quick fixes to full installations." },
   { id: 2, mode: "services", category: "Home cleaning", title: "A clean home, made easy", provider: "FreshNest Home Care", distance: 2.4, price: 799, unit: "session", rating: 4.8, reviews: 96, available: true, badge: "Available today", image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=85", desc: "Thoughtful home cleaning from a trusted local team. Supplies included." },
