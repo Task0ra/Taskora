@@ -294,10 +294,7 @@ function openBooking(id) {
   };
 }
 
-function closeModal() {
-   // ===============================
-// TASKORA AUTHENTICATION
-// ===============================
+function closeModal(){
 
 let currentUser = null;
 
@@ -319,6 +316,41 @@ function showAuthForm(type = "login") {
             <input id="authName" type="text" required placeholder="Your name">
           </label>
         ` : ""}
+        
+        async function saveProfile(user, fullName = "") {
+
+    if (!user) return;
+
+    const profile = {
+
+        id: user.id,
+
+        role: "customer"
+
+    };
+
+    const name = fullName || user.user_metadata?.full_name;
+
+    if (name) {
+
+        profile.full_name = name;
+
+    }
+
+    const { error } = await supabaseClient
+
+        .from("profiles")
+
+        .insert(profile);
+
+    if (error && error.code !== "23505") {
+
+        console.error("Profile error:", error.message);
+
+    }
+
+}
+
 
         <label>
           Email
