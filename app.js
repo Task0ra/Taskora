@@ -569,8 +569,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeModal();
 });
 
-$("#signInBtn").onclick = () =>
-  toast("Sign in is a demo feature in this prototype");
+$("#signInBtn").onclick = () => showAuthForm("login");
 
 $("#accountBtn").onclick = () =>
   toast(`${favorites.size} saved pick${favorites.size === 1 ? "" : "s"} · demo account`);
