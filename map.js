@@ -47,7 +47,10 @@ async function geocode(place) {
   try {
     const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=in" +
       "&viewbox=77.85,30.50,78.25,30.15&q=" + encodeURIComponent(place);
-    const [hit] = await (await fetch(url)).json();
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000); // never hang
+    const [hit] = await (await fetch(url, { signal: ctl.signal })).json();
+    clearTimeout(timer);
     return hit ? { lat: Number(hit.lat), lng: Number(hit.lon) } : null;
   } catch { return null; }
 }
@@ -143,5 +146,3 @@ $("#searchBtn").onclick = async () => { await geocodeLocation(); baseSearch(); }
 $("#locationInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#searchBtn").click(); });
 
 render();
-
-
