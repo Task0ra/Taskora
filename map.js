@@ -91,10 +91,27 @@ const visibleListings = () =>
   [...grid.querySelectorAll("[data-book]")].map((b) => listings.find((l) => l.id === Number(b.dataset.book))).filter(Boolean);
 
 // Wrap your existing render() so distances and the map stay in sync
+// Always-visible sort buttons (work on phone and desktop)
+const chips = document.createElement("div");
+chips.className = "sort-chips";
+chips.innerHTML = [["recommended", "Recommended"], ["distance", "Nearest"], ["price", "Lowest price"], ["rating", "Top rated ★"]]
+  .map(([v, t]) => `<button type="button" data-sort="${v}">${t}</button>`).join("");
+mapBox.before(chips);
+chips.onclick = (e) => {
+  const b = e.target.closest("[data-sort]");
+  if (!b) return;
+  $("#sortSelect").value = b.dataset.sort;
+  if ($("#mobileSort")) $("#mobileSort").value = b.dataset.sort;
+  render();
+};
+const markChip = () => chips.querySelectorAll("button").forEach((b) =>
+  b.classList.toggle("active", b.dataset.sort === $("#sortSelect").value));
+
 const baseRender = render;
 render = function () {
   updateDistances();
   baseRender();
+  markChip();
   if (mapOn) drawMap(visibleListings());
 };
 $("#sortSelect").onchange = render;
@@ -126,4 +143,5 @@ $("#searchBtn").onclick = async () => { await geocodeLocation(); baseSearch(); }
 $("#locationInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#searchBtn").click(); });
 
 render();
+
 
