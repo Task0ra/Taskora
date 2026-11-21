@@ -1,6 +1,23 @@
 // Taskora provider add-on. Load AFTER app.js and map.js.
-const FALLBACK_IMG = "data:image/svg+xml," + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><rect width="800" height="500" fill="#dfeadb"/><text x="400" y="290" font-size="120" text-anchor="middle">✳</text></svg>');
+const CAT_EMOJI = { "Electrician": "⚡", "Home cleaning": "🧹", "Plumber": "🔧", "Caregiver": "💚", "Painter": "🎨",
+  "Studio": "🛋️", "1 BHK": "🏠", "2 BHK": "🏡", "Shop": "🏪", "Scooter": "🛵", "Bike": "🏍️", "Car": "🚗" };
+const fallbackFor = (category) => "data:image/svg+xml," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+  '<stop offset="0" stop-color="#dfeadb"/><stop offset="1" stop-color="#bcd9c3"/></linearGradient></defs>' +
+  '<rect width="800" height="500" fill="url(#g)"/><text x="400" y="300" font-size="150" text-anchor="middle">' +
+  (CAT_EMOJI[category] || "✳") + "</text></svg>");
+
+// If a photo link is dead, swap in the category picture instead of a blank card
+function checkImages() {
+  listings.forEach((l) => {
+    if (!l.image || l.image.startsWith("data:") || l.imgChecked) return;
+    l.imgChecked = true;
+    const probe = new Image();
+    probe.onerror = () => { l.image = fallbackFor(plainText2(l.category)); render(); };
+    probe.src = l.image;
+  });
+}
+const plainText2 = (h) => new DOMParser().parseFromString(String(h ?? ""), "text/html").documentElement.textContent;
 
 const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -18,9 +35,10 @@ async function loadProviderListings() {
     distance: r.distance ?? 1, price: r.price, unit: escapeHtml(r.unit),
     rating: Number(r.rating) || 0, reviews: r.reviews || 0, available: r.available,
     badge: "New listing", desc: escapeHtml(r.description), lat: r.lat, lng: r.lng,
-    image: /^https:\/\//.test(r.image || "") ? r.image.trim().replace(/['"()\\\s]/g, "") : FALLBACK_IMG
+    image: /^https:\/\//.test(r.image || "") ? r.image.trim().replace(/['"()\\\s]/g, "") : fallbackFor(r.category)
   }));
   render();
+  checkImages();
   return null;
 }
 
@@ -54,7 +72,8 @@ async function openProviderForm() {
         <label>Area or address<input id="pvPlace" required placeholder="e.g. Rajpur Road, Dehradun"></label>
         <label>Price (₹)<input id="pvPrice" type="number" min="1" required></label>
         <label>Per<input id="pvUnit" required placeholder="visit, hour, month, day"></label>
-        <label>Photo link (https, optional)<input id="pvImage" type="url"></label>
+        <label>Photo (optional, under 3 MB)<input id="pvFile" type="file" accept="image/*"></label>
+        <label>or a photo link (https)<input id="pvImage" type="url"></label>
         <label>Description<input id="pvDesc" maxlength="300" placeholder="A line or two about what you offer"></label>
       </div>
       <button class="modal-submit" type="submit">Publish listing</button>
@@ -81,12 +100,23 @@ async function openProviderForm() {
       toast("Address not found, so it was placed at your search location");
     }
 
+    let imageUrl = $("#pvImage").value.trim();
+    const file = $("#pvFile").files[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) { reset(); return alert("Please choose a photo under 3 MB."); }
+      const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: upErr } = await supabaseClient.storage.from("listing-photos")
+        .upload(path, file, { contentType: file.type });
+      if (upErr) { reset(); return alert("Photo upload failed:\n\n" + upErr.message); }
+      imageUrl = supabaseClient.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+    }
+
     const chosenMode = $("#pvMode").value;
     const { error } = await supabaseClient.from("listings").insert({
       provider_id: user.id, provider: $("#pvName").value.trim(),
       mode: chosenMode, category: $("#pvCat").value, title: $("#pvTitle").value.trim(),
       price: Number($("#pvPrice").value), unit: $("#pvUnit").value.trim(),
-      image: $("#pvImage").value.trim(), description: $("#pvDesc").value.trim(),
+      image: imageUrl, description: $("#pvDesc").value.trim(),
       lat: hit.lat, lng: hit.lng
     });
     if (error) { reset(); return alert("Could not publish your listing:\n\n" + error.message); }
@@ -128,6 +158,7 @@ async function openProviderForm() {
 
 $("#providerBtn").onclick = openProviderForm;
 loadProviderListings();
+checkImages();
 
 // ---- Header sign-in state (Sign in / Sign out + avatar) ----
 async function refreshHeader() {
