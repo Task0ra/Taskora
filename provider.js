@@ -128,3 +128,56 @@ async function openProviderForm() {
 
 $("#providerBtn").onclick = openProviderForm;
 loadProviderListings();
+
+// ---- Header sign-in state (Sign in / Sign out + avatar) ----
+async function refreshHeader() {
+  const { data } = await supabaseClient.auth.getSession();
+  const user = data.session?.user ?? null;
+  currentUser = user;
+  const name = user?.user_metadata?.full_name || user?.email || "Account";
+  $("#signInBtn").textContent = user ? "Sign out" : "Sign in";
+  $("#accountBtn").textContent = user ? name[0].toUpperCase() : "A";
+  $("#accountBtn").title = name;
+}
+
+$("#signInBtn").onclick = async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session) {
+    await supabaseClient.auth.signOut();
+    toast("Signed out");
+  } else {
+    showAuthForm("login");
+  }
+};
+
+async function openAccount() {
+  const { data } = await supabaseClient.auth.getSession();
+  const user = data.session?.user;
+  if (!user) return showAuthForm("login");
+
+  const name = escapeHtml(user.user_metadata?.full_name || "there");
+  const mine = listings.filter((l) => l.ownerId === user.id);
+
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">YOUR ACCOUNT</div>
+    <h2 id="modalTitle">Hi, ${name}</h2>
+    <p class="modal-description">${escapeHtml(user.email)}</p>
+    <div class="booking-summary"><span>Saved picks</span><b>${favorites.size}</b></div>
+    <div class="booking-summary"><span>Your listings</span><b>${mine.length}</b></div>
+    <button class="modal-submit" id="acctList" type="button">Add or manage listings</button>
+    <button class="modal-submit" id="acctOut" type="button"
+      style="margin-top:10px;background:#fff;color:#315d46;border:1px solid #315d46">Sign out</button>
+  `;
+  $("#modalBackdrop").classList.remove("hidden");
+  $("#acctList").onclick = openProviderForm;
+  $("#acctOut").onclick = async () => {
+    await supabaseClient.auth.signOut();
+    closeModal();
+    toast("Signed out");
+  };
+}
+$("#accountBtn").onclick = openAccount;
+
+// setTimeout avoids a known supabase-js deadlock when calling the API inside this callback
+supabaseClient.auth.onAuthStateChange(() => setTimeout(refreshHeader, 0));
+refreshHeader();
