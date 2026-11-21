@@ -11,6 +11,14 @@ openBooking = function (id) {
   const item = listings.find((l) => l.id === id);
   const original = form.onsubmit;
 
+  // show up to 3 recent reviews for this listing
+  supabaseClient.from("reviews").select("rating, comment").eq("listing_ref", String(item.id))
+    .order("created_at", { ascending: false }).limit(3).then(({ data }) => {
+      if (!data?.length || !document.body.contains(form)) return;
+      form.insertAdjacentHTML("beforebegin", `<div class="booking-summary" style="display:block;margin-bottom:12px">
+        <b>What customers say</b>${data.map((r) => `<br><small><span style="color:#e0a800">${"★".repeat(r.rating)}</span> ${escapeHtml(r.comment)}</small>`).join("")}</div>`);
+    });
+
   form.onsubmit = async (event) => {
     event.preventDefault();
     const { data: s } = await supabaseClient.auth.getSession();
@@ -47,6 +55,8 @@ async function showBookings(kind) {
   const { data, error } = await supabaseClient.from("booking_requests").select("*")
     .eq(incoming ? "provider_id" : "customer_id", user.id).order("created_at", { ascending: false });
   if (error) return alert("Could not load bookings:\n\n" + error.message);
+  const { data: done } = await supabaseClient.from("reviews").select("booking_id").eq("customer_id", user.id);
+  const reviewed = new Set((done || []).map((r) => r.booking_id));
 
   const btn = (act, id, text) => `<button type="button" class="book-btn" data-act="${act}" data-id="${id}">${text}</button> `;
   const rows = data.map((b) => `
@@ -58,6 +68,8 @@ async function showBookings(kind) {
       ${incoming && b.status === "pending" ? "<br>" + btn("confirmed", b.id, "Accept") + btn("declined", b.id, "Decline") : ""}
       ${incoming && b.status === "confirmed" ? "<br>" + btn("completed", b.id, "Mark completed") : ""}
       ${!incoming && b.status === "pending" ? "<br>" + btn("cancelled", b.id, "Cancel request") : ""}
+      ${!incoming && b.status === "completed" ? "<br>" + (reviewed.has(b.id) ? "<small>Reviewed ✓</small>"
+        : `<button type="button" class="book-btn" data-review="${b.id}">Rate this service</button>`) : ""}
     </div>`).join("");
 
   $("#modalContent").innerHTML = `
@@ -79,6 +91,10 @@ async function showBookings(kind) {
       showBookings(kind);
     };
   });
+
+  document.querySelectorAll("[data-review]").forEach((b) => {
+    b.onclick = () => openReview(data.find((x) => String(x.id) === b.dataset.review));
+  });
 }
 
 // Add the two buttons to the account panel
@@ -94,3 +110,45 @@ openAccount = async function () {
   $("#acctRequests").onclick = () => showBookings("incoming");
 };
 $("#accountBtn").onclick = openAccount;
+
+function openReview(b) {
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">RATE YOUR EXPERIENCE</div>
+    <h2 id="modalTitle">${escapeHtml(b.listing_title)}</h2>
+    <p class="modal-description">${escapeHtml(b.provider_name)}</p>
+    <form id="reviewForm">
+      <div id="starPick" style="font-size:38px;cursor:pointer;margin:10px 0;color:#e0a800">
+        ${[1, 2, 3, 4, 5].map((n) => `<span data-star="${n}">☆</span>`).join("")}
+      </div>
+      <div class="booking-fields">
+        <label>Comment (optional)<input id="rvText" maxlength="300" placeholder="How was it?"></label>
+      </div>
+      <button class="modal-submit" type="submit">Submit review</button>
+    </form>`;
+  $("#modalBackdrop").classList.remove("hidden");
+
+  let stars = 0;
+  const spans = document.querySelectorAll("#starPick span");
+  spans.forEach((sp) => {
+    sp.onclick = () => {
+      stars = Number(sp.dataset.star);
+      spans.forEach((x) => (x.textContent = Number(x.dataset.star) <= stars ? "★" : "☆"));
+    };
+  });
+
+  $("#reviewForm").onsubmit = async (e) => {
+    e.preventDefault();
+    if (!stars) return toast("Tap a star rating first");
+    const { data: s } = await supabaseClient.auth.getSession();
+    const user = s.session?.user;
+    if (!user) return showAuthForm("login");
+    const { error } = await supabaseClient.from("reviews").insert({
+      booking_id: b.id, customer_id: user.id, provider_id: b.provider_id,
+      listing_ref: b.listing_ref, rating: stars, comment: $("#rvText").value.trim()
+    });
+    if (error) return alert("Could not save your review:\n\n" + error.message);
+    toast("Thanks for your review!");
+    await loadProviderListings(); // refresh the star rating on the cards
+    showBookings("mine");
+  };
+}
