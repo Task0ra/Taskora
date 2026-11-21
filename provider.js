@@ -9,7 +9,7 @@ async function loadProviderListings() {
   if (!supabaseClient) return;
   const { data, error } = await supabaseClient.from("listings").select("*")
     .not("provider_id", "is", null).order("id");
-  if (error) return console.error("Listings error:", error.message);
+  if (error) { console.error("Listings error:", error.message); return error.message; }
 
   for (let i = listings.length - 1; i >= 0; i--) if (listings[i].dbId) listings.splice(i, 1);
   data.forEach((r) => listings.push({
@@ -21,6 +21,7 @@ async function loadProviderListings() {
     image: /^https:\/\//.test(r.image || "") ? r.image.trim().replace(/['"()\\\s]/g, "") : FALLBACK_IMG
   }));
   render();
+  return null;
 }
 
 async function openProviderForm() {
@@ -68,15 +69,17 @@ async function openProviderForm() {
 
   $("#pvMode").onchange = (e) => ($("#pvCat").innerHTML = cats(e.target.value));
 
-  $("#provForm").onsubmit = async (e) => {
-    e.preventDefault();
+  const submitProvider = async (e) => {
     const btn = e.target.querySelector(".modal-submit");
     btn.disabled = true;
     btn.textContent = "Publishing…";
     const reset = () => { btn.disabled = false; btn.textContent = "Publish listing"; };
 
-    const hit = await geocode($("#pvPlace").value.trim());
-    if (!hit) { reset(); return toast("Couldn't find that address. Add the area and city."); }
+    let hit = await geocode($("#pvPlace").value.trim());
+    if (!hit) { // fall back to the current search location so publishing never gets stuck
+      hit = { lat: userPos.lat, lng: userPos.lng };
+      toast("Address not found, so it was placed at your search location");
+    }
 
     const chosenMode = $("#pvMode").value;
     const { error } = await supabaseClient.from("listings").insert({
@@ -86,13 +89,31 @@ async function openProviderForm() {
       image: $("#pvImage").value.trim(), description: $("#pvDesc").value.trim(),
       lat: hit.lat, lng: hit.lng
     });
-    if (error) { reset(); return toast("Could not publish: " + error.message); }
+    if (error) { reset(); return alert("Could not publish your listing:\n\n" + error.message); }
 
     supabaseClient.from("profiles").update({ role: "provider" }).eq("id", user.id).then(() => {});
     closeModal();
     toast("Your listing is live!");
-    await loadProviderListings();
+    const loadErr = await loadProviderListings();
+    if (loadErr) alert("Your listing was saved, but loading listings failed:\n\n" + loadErr);
     setMode(chosenMode);
+    const price = Number($("#pvPrice").value);
+    if (price > priceMax) { // make sure the price slider doesn't hide the new listing
+      const slider = $("#priceRange");
+      slider.max = Math.max(Number(slider.max), price);
+      slider.value = priceMax = price;
+      updatePrice();
+      render();
+    }
+  };
+  $("#provForm").onsubmit = async (e) => {
+    e.preventDefault();
+    try { await submitProvider(e); }
+    catch (err) {
+      alert("Something went wrong:\n\n" + err.message);
+      const b = e.target.querySelector(".modal-submit");
+      if (b) { b.disabled = false; b.textContent = "Publish listing"; }
+    }
   };
 
   document.querySelectorAll("[data-remove]").forEach((b) => {
