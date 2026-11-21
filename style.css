@@ -657,7 +657,6 @@ button { cursor: pointer; }
   font-weight: 700;
 }
 .book-btn:hover { background: var(--green); color: white; }
-.empty-state {
   .toast {
   position: fixed;
   z-index: 20;
