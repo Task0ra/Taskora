@@ -1,4 +1,5 @@
 // Taskora provider add-on. Load AFTER app.js and map.js.
+console.log("provider.js v3 loaded");
 const CAT_EMOJI = { "Electrician": "⚡", "Home cleaning": "🧹", "Plumber": "🔧", "Caregiver": "💚", "Painter": "🎨",
   "Studio": "🛋️", "1 BHK": "🏠", "2 BHK": "🏡", "Shop": "🏪", "Scooter": "🛵", "Bike": "🏍️", "Car": "🚗" };
 const svgFallback = (category) => "data:image/svg+xml," + encodeURIComponent(
@@ -29,6 +30,7 @@ function checkImages() {
     l.imgChecked = true;
     const probe = new Image();
     probe.onerror = () => {
+      console.warn("Photo failed to load:", l.image);
       const cat = plainText2(l.category);
       const photo = CAT_PHOTO[cat];
       if (photo && l.image !== photo) { l.image = photo; l.imgChecked = false; } // try a similar photo
