@@ -1,11 +1,26 @@
 // Taskora provider add-on. Load AFTER app.js and map.js.
 const CAT_EMOJI = { "Electrician": "⚡", "Home cleaning": "🧹", "Plumber": "🔧", "Caregiver": "💚", "Painter": "🎨",
   "Studio": "🛋️", "1 BHK": "🏠", "2 BHK": "🏡", "Shop": "🏪", "Scooter": "🛵", "Bike": "🏍️", "Car": "🚗" };
-const fallbackFor = (category) => "data:image/svg+xml," + encodeURIComponent(
+const svgFallback = (category) => "data:image/svg+xml," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
   '<stop offset="0" stop-color="#dfeadb"/><stop offset="1" stop-color="#bcd9c3"/></linearGradient></defs>' +
   '<rect width="800" height="500" fill="url(#g)"/><text x="400" y="300" font-size="150" text-anchor="middle">' +
   (CAT_EMOJI[category] || "✳") + "</text></svg>");
+
+const U = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=800&q=85`;
+const CAT_PHOTO = {
+  "Electrician": U("1621905251189-08b45d6a269e"), "Home cleaning": U("1581578731548-c64695cc6952"),
+  "Plumber": U("1607472586893-edb57bdc0e39"), "Caregiver": U("1762955911769-d652ceaa94bb"),
+  "Painter": U("1562259949-e8e7689d7828"), "Studio": U("1522708323590-d24dbb6b0267"),
+  "1 BHK": U("1493809842364-78817add7ffb"), "2 BHK": U("1600210492486-724fe5c67fb0"),
+  "Shop": U("1604754742629-3e5728249d73"), "Scooter": U("1558981806-ec527fa84c39"),
+  "Bike": U("1558981403-c5f9899a28bc"), "Car": U("1503376780353-7e6692767b70")
+};
+const fallbackFor = (category) => CAT_PHOTO[category] || svgFallback(category);
+
+// "Gentle care at home": its old photo link is dead, so use a working caregiver photo
+const careDemo = listings.find((l) => l.id === 4);
+if (careDemo) careDemo.image = CAT_PHOTO["Caregiver"];
 
 // If a photo link is dead, swap in the category picture instead of a blank card
 function checkImages() {
@@ -13,7 +28,14 @@ function checkImages() {
     if (!l.image || l.image.startsWith("data:") || l.imgChecked) return;
     l.imgChecked = true;
     const probe = new Image();
-    probe.onerror = () => { l.image = fallbackFor(plainText2(l.category)); render(); };
+    probe.onerror = () => {
+      const cat = plainText2(l.category);
+      const photo = CAT_PHOTO[cat];
+      if (photo && l.image !== photo) { l.image = photo; l.imgChecked = false; } // try a similar photo
+      else l.image = svgFallback(cat); // last resort: picture with an icon
+      render();
+      checkImages();
+    };
     probe.src = l.image;
   });
 }
