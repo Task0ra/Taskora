@@ -2,3 +2,7 @@
 #map.hidden { display: none; }
 .map-pin { display: inline-block; background: var(--green, #315d46); color: #fff; font: 700 12px "DM Sans", sans-serif; padding: 5px 10px; border-radius: 999px; box-shadow: 0 4px 12px #24362a40; white-space: nowrap; }
 .leaflet-popup-content a { color: var(--green, #315d46); font-weight: 700; }
+
+.sort-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.sort-chips button { border: 1px solid var(--line, #dfe5dc); background: #fff; border-radius: 999px; padding: 8px 14px; font: 600 13px "DM Sans", sans-serif; cursor: pointer; }
+.sort-chips button.active { background: var(--green, #315d46); border-color: var(--green, #315d46); color: #fff; }
