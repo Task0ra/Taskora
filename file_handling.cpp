@@ -896,4 +896,125 @@ bool updateRentalAvailability(string propertyID, string newStatus) {
 
     return true;
 }
+// ==================== RENTALS: BOOK PROPERTY ====================
+
+void bookRentalProperty(string customerID) {
+    string propertyID = readText("Enter property ID to book: ");
+
+    ifstream file("rentals.txt");
+    string line;
+    bool available = false;
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() >= 7 &&
+            f[0] == propertyID &&
+            toLowerCase(f[6]) == "available") {
+
+            available = true;
+            break;
+        }
+    }
+
+    file.close();
+
+    if (!available) {
+        cout << "Property not found or is already booked.\n";
+        return;
+    }
+
+    ofstream bookingFile("bookings.txt", ios::app);
+
+    if (!bookingFile) {
+        cout << "Unable to save booking.\n";
+        return;
+    }
+
+    string bookingID = "B" + customerID + "_" + propertyID;
+
+    if (!updateRentalAvailability(propertyID, "Booked")) {
+        cout << "Booking could not be completed.\n";
+        return;
+    }
+
+    bookingFile << bookingID << "|" << customerID
+                << "|" << propertyID << "|Confirmed\n";
+
+    cout << "Property booked successfully!\n";
+    cout << "Booking ID: " << bookingID << '\n';
+}
+
+// ==================== CUSTOMER MENU ====================
+
+void customerMenu(string customerID) {
+    int choice;
+
+    cout << "\n===== CUSTOMER MENU =====\n";
+    cout << "1. Search for a service\n";
+    cout << "2. Submit a provider rating\n";
+    cout << "3. Search rental properties\n";
+    cout << "4. Book a rental property\n";
+    cout << "Enter choice: ";
+
+    if (!readChoice(choice)) {
+        return;
+    }
+
+    switch (choice) {
+        case 1:
+            searchService();
+            break;
+
+        case 2:
+            submitRating();
+            break;
+
+        case 3:
+            searchRentalProperties();
+            break;
+
+        case 4:
+            bookRentalProperty(customerID);
+            break;
+
+        default:
+            cout << "Invalid choice.\n";
+    }
+
+    cout << "Returning to the main menu...\n";
+}
+
+// ==================== CUSTOMER LOGIN ====================
+
+void customerLogin() {
+    cout << "\n===== CUSTOMER LOGIN =====\n";
+
+    string id = readText("Enter customer ID: ");
+    string password = readText("Enter password: ");
+
+    if (checkLogin("customers.txt", id, password, 0, 4)) {
+        cout << "Login successful!\n";
+        customerMenu(id);
+    } else {
+        cout << "Invalid customer ID or password.\n";
+    }
+}
+
+// ==================== PROVIDER LOGIN ====================
+
+void providerLogin() {
+    cout << "\n===== SERVICE PROVIDER LOGIN =====\n";
+
+    string id = readText("Enter provider ID: ");
+    string password = readText("Enter password: ");
+
+    if (checkLogin("providers.txt", id, password, 0, 5)) {
+        cout << "Login successful!\n";
+        providerMenu(id);
+    } else {
+        cout << "Invalid provider ID or password.\n";
+    }
+}
+
 
