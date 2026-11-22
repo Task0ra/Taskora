@@ -357,3 +357,24 @@ void displayProviders() {
         cout << "No service providers registered yet.\n";
     }
 }
+
+// ==================== LOGIN VALIDATION ====================
+
+bool checkLogin(string filename, string id, string password,
+                int idField, int passwordField) {
+    ifstream file(filename);
+    string line;
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() > static_cast<size_t>(
+                max(idField, passwordField)) &&
+            f[idField] == id &&
+            f[passwordField] == password) {
+            return true;
+        }
+    }
+
+    return false;
+}
