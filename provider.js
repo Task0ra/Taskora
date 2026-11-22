@@ -1,293 +1,228 @@
-// Taskora provider add-on. Load AFTER app.js and map.js.
-console.log("provider.js v3 loaded");
-const CAT_EMOJI = { "Electrician": "⚡", "Home cleaning": "🧹", "Plumber": "🔧", "Caregiver": "💚", "Painter": "🎨",
-  "Studio": "🛋️", "1 BHK": "🏠", "2 BHK": "🏡", "Shop": "🏪", "Scooter": "🛵", "Bike": "🏍️", "Car": "🚗" };
-const svgFallback = (category) => "data:image/svg+xml," + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
-  '<stop offset="0" stop-color="#dfeadb"/><stop offset="1" stop-color="#bcd9c3"/></linearGradient></defs>' +
-  '<rect width="800" height="500" fill="url(#g)"/><text x="400" y="300" font-size="150" text-anchor="middle">' +
-  (CAT_EMOJI[category] || "✳") + "</text></svg>");
+// Taskora bookings add-on. Load AFTER app.js, map.js and provider.js.
+const plainText = (h) => new DOMParser().parseFromString(String(h ?? ""), "text/html").documentElement.textContent;
+const STATUS_COLOR = { pending: "#b7791f", confirmed: "#2f7d4f", completed: "#2f7d4f", declined: "#b3261e", cancelled: "#777" };
 
-const U = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=800&q=85`;
-const CAT_PHOTO = {
-  "Electrician": U("1621905251189-08b45d6a269e"), "Home cleaning": U("1581578731548-c64695cc6952"),
-  "Plumber": U("1607472586893-edb57bdc0e39"), "Caregiver": U("1762955911769-d652ceaa94bb"),
-  "Painter": U("1562259949-e8e7689d7828"), "Studio": U("1522708323590-d24dbb6b0267"),
-  "1 BHK": U("1493809842364-78817add7ffb"), "2 BHK": U("1600210492486-724fe5c67fb0"),
-  "Shop": U("1604754742629-3e5728249d73"), "Scooter": U("1558981806-ec527fa84c39"),
-  "Bike": U("1558981403-c5f9899a28bc"), "Car": U("1503376780353-7e6692767b70")
-};
-const fallbackFor = (category) => CAT_PHOTO[category] || svgFallback(category);
+// Save every booking to Supabase when the booking form is submitted
+const baseOpenBooking = openBooking;
+openBooking = function (id) {
+  baseOpenBooking(id);
+  const form = $("#bookingForm");
+  if (!form) return;
+  const item = listings.find((l) => l.id === id);
+  const original = form.onsubmit;
+  form.querySelector(".booking-fields").insertAdjacentHTML("beforeend",
+    `<label>Payment method<select id="bookingPay"><option>UPI</option><option>Card</option><option>Cash on service</option></select></label>`);
 
-// "Gentle care at home": its old photo link is dead, so use a working caregiver photo
-const careDemo = listings.find((l) => l.id === 4);
-if (careDemo) careDemo.image = CAT_PHOTO["Caregiver"];
-
-// If a photo link is dead, swap in the category picture instead of a blank card
-function checkImages() {
-  listings.forEach((l) => {
-    if (!l.image || l.image.startsWith("data:") || l.imgChecked) return;
-    l.imgChecked = true;
-    const probe = new Image();
-    probe.onerror = () => {
-      console.warn("Photo failed to load:", l.image);
-      const cat = plainText2(l.category);
-      const photo = CAT_PHOTO[cat];
-      if (photo && l.image !== photo) { l.image = photo; l.imgChecked = false; } // try a similar photo
-      else l.image = svgFallback(cat); // last resort: picture with an icon
-      render();
-      checkImages();
-    };
-    probe.src = l.image;
-  });
-}
-const plainText2 = (h) => new DOMParser().parseFromString(String(h ?? ""), "text/html").documentElement.textContent;
-
-const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
-  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-async function loadProviderListings() {
-  if (!supabaseClient) return;
-  const { data, error } = await supabaseClient.from("listings").select("*")
-    .not("provider_id", "is", null).order("id");
-  if (error) { console.error("Listings error:", error.message); return error.message; }
-
-  for (let i = listings.length - 1; i >= 0; i--) if (listings[i].dbId) listings.splice(i, 1);
-  data.forEach((r) => listings.push({
-    id: 1000 + r.id, dbId: r.id, ownerId: r.provider_id, mode: r.mode,
-    category: escapeHtml(r.category), title: escapeHtml(r.title), provider: escapeHtml(r.provider),
-    distance: r.distance ?? 1, price: r.price, unit: escapeHtml(r.unit),
-    rating: Number(r.rating) || 0, reviews: r.reviews || 0, available: r.available,
-    badge: "New listing", desc: escapeHtml(r.description), lat: r.lat, lng: r.lng,
-    image: /^https:\/\//.test(r.image || "") ? r.image.trim().replace(/['"()\\\s]/g, "") : fallbackFor(r.category)
-  }));
-  render();
-  checkImages();
-  return null;
-}
-
-async function openProviderForm() {
-  const { data } = await supabaseClient.auth.getUser();
-  const user = data?.user;
-  if (!user) {
-    toast("Create an account first, then tap List your service again");
-    return showAuthForm("signup");
-  }
-
-  const cats = (m) => modeInfo[m].categories.map((c) => `<option>${c}</option>`).join("");
-  const mine = listings.filter((l) => l.ownerId === user.id);
-  const myName = escapeHtml(user.user_metadata?.full_name || "");
-
-  $("#modalContent").innerHTML = `
-    <div class="modal-kicker">GROW YOUR BUSINESS</div>
-    <h2 id="modalTitle">List your offering</h2>
-    <p class="modal-description">It appears on the map and in search as soon as you publish.</p>
-    <form id="provForm">
-      <div class="booking-fields">
-        <label>Type
-          <select id="pvMode">
-            <option value="services">Service</option>
-            <option value="properties">Property for rent</option>
-            <option value="vehicles">Vehicle for rent</option>
-          </select></label>
-        <label>Category<select id="pvCat">${cats("services")}</select></label>
-        <label>Title<input id="pvTitle" required maxlength="80" placeholder="e.g. Reliable home wiring"></label>
-        <label>Your name or business<input id="pvName" required maxlength="60" value="${myName}"></label>
-        <label>Area or address<input id="pvPlace" required placeholder="e.g. Rajpur Road, Dehradun"></label>
-        <label>Price (₹)<input id="pvPrice" type="number" min="1" required></label>
-        <label>Per<input id="pvUnit" required placeholder="visit, hour, month, day"></label>
-        <label>Photo (optional, under 3 MB)<input id="pvFile" type="file" accept="image/*"></label>
-        <label>or a photo link (https)<input id="pvImage" type="url"></label>
-        <label>Description<input id="pvDesc" maxlength="300" placeholder="A line or two about what you offer"></label>
-      </div>
-      <button class="modal-submit" type="submit">Publish listing</button>
-    </form>
-    ${mine.length ? `<h3 style="margin-top:22px">Your listings</h3>` + mine.map((l) => `
-      <div class="booking-summary" style="display:block;margin-bottom:8px">
-        <b>${l.title}</b> · ${money(l.price)} / ${l.unit}<br>
-        <button type="button" class="book-btn" data-edit="${l.dbId}">Edit</button>
-        <button type="button" class="book-btn" data-avail="${l.dbId}">${l.available ? "Available today ✓" : "Unavailable"}</button>
-        <button type="button" class="book-btn" data-remove="${l.dbId}">Remove</button>
-      </div>`).join("") : ""}
-  `;
-  $("#modalBackdrop").classList.remove("hidden");
-
-  $("#pvMode").onchange = (e) => ($("#pvCat").innerHTML = cats(e.target.value));
-
-  const submitProvider = async (e) => {
-    const btn = e.target.querySelector(".modal-submit");
-    btn.disabled = true;
-    btn.textContent = "Publishing…";
-    const reset = () => { btn.disabled = false; btn.textContent = "Publish listing"; };
-
-    let hit = await geocode($("#pvPlace").value.trim());
-    if (!hit) { // fall back to the current search location so publishing never gets stuck
-      hit = { lat: userPos.lat, lng: userPos.lng };
-      toast("Address not found, so it was placed at your search location");
-    }
-
-    let imageUrl = $("#pvImage").value.trim();
-    const file = $("#pvFile").files[0];
-    if (file) {
-      if (file.size > 3 * 1024 * 1024) { reset(); return alert("Please choose a photo under 3 MB."); }
-      const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { error: upErr } = await supabaseClient.storage.from("listing-photos")
-        .upload(path, file, { contentType: file.type });
-      if (upErr) { reset(); return alert("Photo upload failed:\n\n" + upErr.message); }
-      imageUrl = supabaseClient.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
-    }
-
-    const chosenMode = $("#pvMode").value;
-    const { error } = await supabaseClient.from("listings").insert({
-      provider_id: user.id, provider: $("#pvName").value.trim(),
-      mode: chosenMode, category: $("#pvCat").value, title: $("#pvTitle").value.trim(),
-      price: Number($("#pvPrice").value), unit: $("#pvUnit").value.trim(),
-      image: imageUrl, description: $("#pvDesc").value.trim(),
-      lat: hit.lat, lng: hit.lng
+  // show up to 3 recent reviews for this listing
+  supabaseClient.from("reviews").select("rating, comment").eq("listing_ref", String(item.id))
+    .order("created_at", { ascending: false }).limit(3).then(({ data }) => {
+      if (!data?.length || !document.body.contains(form)) return;
+      form.insertAdjacentHTML("beforebegin", `<div class="booking-summary" style="display:block;margin-bottom:12px">
+        <b>What customers say</b>${data.map((r) => `<br><small><span style="color:#e0a800">${"★".repeat(r.rating)}</span> ${escapeHtml(r.comment)}</small>`).join("")}</div>`);
     });
-    if (error) { reset(); return alert("Could not publish your listing:\n\n" + error.message); }
 
-    supabaseClient.from("profiles").update({ role: "provider" }).eq("id", user.id).then(() => {});
-    closeModal();
-    toast("Your listing is live!");
-    const loadErr = await loadProviderListings();
-    if (loadErr) alert("Your listing was saved, but loading listings failed:\n\n" + loadErr);
-    setMode(chosenMode);
-    const price = Number($("#pvPrice").value);
-    if (price > priceMax) { // make sure the price slider doesn't hide the new listing
-      const slider = $("#priceRange");
-      slider.max = Math.max(Number(slider.max), price);
-      slider.value = priceMax = price;
-      updatePrice();
-      render();
+  form.onsubmit = async (event) => {
+    event.preventDefault();
+    const { data: s } = await supabaseClient.auth.getSession();
+    const user = s.session?.user;
+    if (!user) { toast("Please sign in to book"); return showAuthForm("login"); }
+
+    const btn = form.querySelector(".modal-submit");
+    const label = btn.innerHTML;
+    btn.disabled = true;
+    const method = $("#bookingPay").value;
+    const advance = method === "Cash on service" ? 0 : Math.round(item.price * 0.2); // demo: 20% advance
+    const { data, error } = await supabaseClient.from("booking_requests").insert({
+      customer_id: user.id, provider_id: item.ownerId || null, listing_ref: String(item.id),
+      listing_title: plainText(item.title), provider_name: plainText(item.provider),
+      price: item.price, unit: plainText(item.unit),
+      detail: $("#bookingDetail").value, time_slot: $("#bookingTime").value,
+      phone: form.querySelector("[type=tel]").value,
+      payment_method: method, advance_amount: advance, payment_status: advance ? "advance_paid" : "unpaid"
+    }).select("ref").single();
+
+    if (error) {
+      btn.disabled = false; btn.innerHTML = label;
+      return alert("Could not save your booking:\n\n" + error.message);
     }
+    original(event); // shows your existing success screen
+    const tag = document.querySelector(".booking-id");
+    if (tag) tag.textContent = "Booking ref · " + data.ref;
   };
-  $("#provForm").onsubmit = async (e) => {
-    e.preventDefault();
-    try { await submitProvider(e); }
-    catch (err) {
-      alert("Something went wrong:\n\n" + err.message);
-      const b = e.target.querySelector(".modal-submit");
-      if (b) { b.disabled = false; b.textContent = "Publish listing"; }
-    }
-  };
-
-  document.querySelectorAll("[data-remove]").forEach((b) => {
-    b.onclick = async () => {
-      const { error } = await supabaseClient.from("listings").delete().eq("id", b.dataset.remove);
-      toast(error ? error.message : "Listing removed");
-      await loadProviderListings();
-      openProviderForm();
-    };
-  });
-
-  document.querySelectorAll("[data-avail]").forEach((b) => {
-    b.onclick = async () => {
-      const l = listings.find((x) => x.dbId === Number(b.dataset.avail));
-      const { error } = await supabaseClient.from("listings").update({ available: !l.available }).eq("id", l.dbId);
-      toast(error ? error.message : l.available ? "Marked unavailable" : "Marked available today");
-      await loadProviderListings();
-      openProviderForm();
-    };
-  });
-  document.querySelectorAll("[data-edit]").forEach((b) => {
-    b.onclick = () => openEditListing(listings.find((x) => x.dbId === Number(b.dataset.edit)));
-  });
-}
-
-function openEditListing(l) {
-  const v = (h) => escapeHtml(plainText2(h));
-  $("#modalContent").innerHTML = `
-    <div class="modal-kicker">EDIT LISTING</div><h2 id="modalTitle">${l.title}</h2>
-    <form id="editForm"><div class="booking-fields">
-      <label>Title<input id="edTitle" required maxlength="80" value="${v(l.title)}"></label>
-      <label>Price (₹)<input id="edPrice" type="number" min="1" required value="${l.price}"></label>
-      <label>Per<input id="edUnit" required value="${v(l.unit)}"></label>
-      <label>Description<input id="edDesc" maxlength="300" value="${v(l.desc)}"></label>
-      <label>New photo (optional, under 3 MB)<input id="edFile" type="file" accept="image/*"></label>
-    </div>
-    <button class="modal-submit" type="submit">Save changes</button>
-    <button class="modal-submit" type="button" id="edBack" style="margin-top:10px;background:#fff;color:#315d46;border:1px solid #315d46">Cancel</button></form>`;
-  $("#modalBackdrop").classList.remove("hidden");
-  $("#edBack").onclick = openProviderForm;
-
-  $("#editForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const btn = e.target.querySelector("[type=submit]");
-    btn.disabled = true; btn.textContent = "Saving…";
-    const fail = (msg) => { btn.disabled = false; btn.textContent = "Save changes"; alert(msg); };
-
-    const patch = { title: $("#edTitle").value.trim(), price: Number($("#edPrice").value),
-      unit: $("#edUnit").value.trim(), description: $("#edDesc").value.trim() };
-    const file = $("#edFile").files[0];
-    if (file) {
-      if (file.size > 3 * 1024 * 1024) return fail("Please choose a photo under 3 MB.");
-      const path = `${l.ownerId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { error: upErr } = await supabaseClient.storage.from("listing-photos").upload(path, file, { contentType: file.type });
-      if (upErr) return fail("Photo upload failed:\n\n" + upErr.message);
-      patch.image = supabaseClient.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
-    }
-    const { error } = await supabaseClient.from("listings").update(patch).eq("id", l.dbId);
-    if (error) return fail("Could not save changes:\n\n" + error.message);
-    toast("Listing updated");
-    await loadProviderListings();
-    openProviderForm();
-  };
-}
-
-$("#providerBtn").onclick = openProviderForm;
-loadProviderListings();
-checkImages();
-
-// ---- Header sign-in state (Sign in / Sign out + avatar) ----
-async function refreshHeader() {
-  const { data } = await supabaseClient.auth.getSession();
-  const user = data.session?.user ?? null;
-  currentUser = user;
-  const name = user?.user_metadata?.full_name || user?.email || "Account";
-  $("#signInBtn").textContent = user ? "Sign out" : "Sign in";
-  $("#accountBtn").textContent = user ? name[0].toUpperCase() : "A";
-  $("#accountBtn").title = name;
-}
-
-$("#signInBtn").onclick = async () => {
-  const { data } = await supabaseClient.auth.getSession();
-  if (data.session) {
-    await supabaseClient.auth.signOut();
-    toast("Signed out");
-  } else {
-    showAuthForm("login");
-  }
 };
 
-async function openAccount() {
-  const { data } = await supabaseClient.auth.getSession();
-  const user = data.session?.user;
+async function showBookings(kind) {
+  const { data: s } = await supabaseClient.auth.getSession();
+  const user = s.session?.user;
   if (!user) return showAuthForm("login");
 
-  const name = escapeHtml(user.user_metadata?.full_name || "there");
-  const mine = listings.filter((l) => l.ownerId === user.id);
+  const incoming = kind === "incoming";
+  const { data, error } = await supabaseClient.from("booking_requests").select("*")
+    .eq(incoming ? "provider_id" : "customer_id", user.id).order("created_at", { ascending: false });
+  if (error) return alert("Could not load bookings:\n\n" + error.message);
+  const { data: done } = await supabaseClient.from("reviews").select("booking_id").eq("customer_id", user.id);
+  const reviewed = new Set((done || []).map((r) => r.booking_id));
+
+  const btn = (act, id, text) => `<button type="button" class="book-btn" data-act="${act}" data-id="${id}">${text}</button> `;
+  const rows = data.map((b) => `
+    <div class="booking-summary" style="display:block;margin-bottom:10px">
+      <b>${escapeHtml(b.listing_title)}</b> · ${escapeHtml(b.ref)}<br>
+      <small>${escapeHtml(b.time_slot)} · ${escapeHtml(b.detail)} · ${money(b.price)} / ${escapeHtml(b.unit)}
+        ${incoming ? " · " + escapeHtml(b.phone) : ""}</small><br>
+      <b style="color:${STATUS_COLOR[b.status]}">${b.status}</b>
+      <small> · ${escapeHtml(b.payment_method || "")} · ${escapeHtml((b.payment_status || "").replace("_", " "))}${b.advance_amount ? " · advance " + money(b.advance_amount) : ""}</small>
+      ${incoming && b.status === "pending" ? "<br>" + btn("confirmed", b.id, "Accept") + btn("declined", b.id, "Decline") : ""}
+      ${incoming && b.status === "confirmed" ? "<br>" + btn("completed", b.id, "Mark completed") : ""}
+      ${incoming && ["confirmed", "completed"].includes(b.status) && b.payment_status !== "paid" ? "<br>" + btn("pay", b.id, "Mark payment received") : ""}
+      ${!incoming && b.status === "pending" ? "<br>" + btn("cancelled", b.id, "Cancel request") : ""}
+      ${!incoming && b.status === "completed" ? "<br>" + (reviewed.has(b.id) ? "<small>Reviewed ✓</small>"
+        : `<button type="button" class="book-btn" data-review="${b.id}">Rate this service</button>`) : ""}
+    </div>`).join("");
 
   $("#modalContent").innerHTML = `
-    <div class="modal-kicker">YOUR ACCOUNT</div>
-    <h2 id="modalTitle">Hi, ${name}</h2>
-    <p class="modal-description">${escapeHtml(user.email)}</p>
-    <div class="booking-summary"><span>Saved picks</span><b>${favorites.size}</b></div>
-    <div class="booking-summary"><span>Your listings</span><b>${mine.length}</b></div>
-    <button class="modal-submit" id="acctList" type="button">Add or manage listings</button>
-    <button class="modal-submit" id="acctOut" type="button"
-      style="margin-top:10px;background:#fff;color:#315d46;border:1px solid #315d46">Sign out</button>
-  `;
+    <div class="modal-kicker">${incoming ? "BOOKING REQUESTS" : "YOUR BOOKINGS"}</div>
+    <h2 id="modalTitle">${incoming ? "Requests for you" : "My bookings"}</h2>
+    ${rows || `<p class="modal-description">${incoming
+      ? "No requests yet. They appear here when someone books a listing you published."
+      : "No bookings yet."}</p>`}
+    <button type="button" class="modal-submit" id="backAcct" style="margin-top:10px">Back to account</button>`;
   $("#modalBackdrop").classList.remove("hidden");
-  $("#acctList").onclick = openProviderForm;
-  $("#acctOut").onclick = async () => {
-    await supabaseClient.auth.signOut();
-    closeModal();
-    toast("Signed out");
-  };
+  $("#backAcct").onclick = openAccount;
+
+  document.querySelectorAll("[data-act]").forEach((b) => {
+    b.onclick = async () => {
+      b.disabled = true;
+      const { error: err } = await supabaseClient.from("booking_requests")
+        .update(b.dataset.act === "pay" ? { payment_status: "paid" } : { status: b.dataset.act }).eq("id", b.dataset.id);
+      toast(err ? err.message : "Booking " + b.dataset.act);
+      showBookings(kind);
+    };
+  });
+
+  document.querySelectorAll("[data-review]").forEach((b) => {
+    b.onclick = () => openReview(data.find((x) => String(x.id) === b.dataset.review));
+  });
 }
+
+// Add the two buttons to the account panel
+const baseOpenAccount = openAccount;
+openAccount = async function () {
+  await baseOpenAccount();
+  const first = $("#acctList");
+  if (!first) return;
+  first.insertAdjacentHTML("beforebegin", `
+    <button class="modal-submit" id="acctSaved" type="button" style="margin-top:10px">Saved picks (${favorites.size})</button>
+    <button class="modal-submit" id="acctBookings" type="button" style="margin-top:10px">My bookings</button>
+    <button class="modal-submit" id="acctRequests" type="button" style="margin:10px 0">Booking requests (for providers)</button>`);
+  $("#acctSaved").onclick = showSaved;
+  $("#acctBookings").onclick = () => showBookings("mine");
+  $("#acctRequests").onclick = () => showBookings("incoming");
+};
 $("#accountBtn").onclick = openAccount;
 
-// setTimeout avoids a known supabase-js deadlock when calling the API inside this callback
-supabaseClient.auth.onAuthStateChange(() => setTimeout(refreshHeader, 0));
-refreshHeader();
+function openReview(b) {
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">RATE YOUR EXPERIENCE</div>
+    <h2 id="modalTitle">${escapeHtml(b.listing_title)}</h2>
+    <p class="modal-description">${escapeHtml(b.provider_name)}</p>
+    <form id="reviewForm">
+      <div id="starPick" style="font-size:38px;cursor:pointer;margin:10px 0;color:#e0a800">
+        ${[1, 2, 3, 4, 5].map((n) => `<span data-star="${n}">☆</span>`).join("")}
+      </div>
+      <div class="booking-fields">
+        <label>Comment (optional)<input id="rvText" maxlength="300" placeholder="How was it?"></label>
+      </div>
+      <button class="modal-submit" type="submit">Submit review</button>
+    </form>`;
+  $("#modalBackdrop").classList.remove("hidden");
+
+  let stars = 0;
+  const spans = document.querySelectorAll("#starPick span");
+  spans.forEach((sp) => {
+    sp.onclick = () => {
+      stars = Number(sp.dataset.star);
+      spans.forEach((x) => (x.textContent = Number(x.dataset.star) <= stars ? "★" : "☆"));
+    };
+  });
+
+  $("#reviewForm").onsubmit = async (e) => {
+    e.preventDefault();
+    if (!stars) return toast("Tap a star rating first");
+    const submitBtn = e.target.querySelector(".modal-submit");
+    if (submitBtn.disabled) return; // ignore double taps
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving…";
+    const { data: s } = await supabaseClient.auth.getSession();
+    const user = s.session?.user;
+    if (!user) return showAuthForm("login");
+    const { error } = await supabaseClient.from("reviews").insert({
+      booking_id: b.id, customer_id: user.id, provider_id: b.provider_id,
+      listing_ref: b.listing_ref, rating: stars, comment: $("#rvText").value.trim()
+    });
+    if (error) {
+      if (error.code === "23505") { // this booking already has a review
+        toast("You've already reviewed this booking");
+        await loadProviderListings();
+        return showBookings("mine");
+      }
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit review";
+      return alert("Could not save your review:\n\n" + error.message);
+    }
+    toast("Thanks for your review!");
+    await loadProviderListings(); // refresh the star rating on the cards
+    showBookings("mine");
+  };
+}
+
+// ---------- Saved favorites (kept in the database) ----------
+const baseToggleFavorite = toggleFavorite;
+toggleFavorite = async function (id) {
+  const { data: s } = await supabaseClient.auth.getSession();
+  const user = s.session?.user;
+  if (!user) { toast("Sign in to save favorites"); return showAuthForm("login"); }
+
+  const wasSaved = favorites.has(id);
+  baseToggleFavorite(id); // update the heart instantly
+  const table = supabaseClient.from("saved_listings");
+  const { error } = wasSaved
+    ? await table.delete().eq("user_id", user.id).eq("listing_ref", String(id))
+    : await table.insert({ user_id: user.id, listing_ref: String(id) });
+  if (error && error.code !== "23505") {
+    baseToggleFavorite(id); // undo the heart
+    alert("Could not save your favorite:\n\n" + error.message);
+  }
+};
+
+async function loadFavorites() {
+  const { data: s } = await supabaseClient.auth.getSession();
+  const user = s.session?.user;
+  favorites.clear();
+  if (user) {
+    const { data } = await supabaseClient.from("saved_listings").select("listing_ref").eq("user_id", user.id);
+    (data || []).forEach((r) => favorites.add(Number(r.listing_ref)));
+  }
+  render();
+}
+supabaseClient.auth.onAuthStateChange(() => setTimeout(loadFavorites, 0));
+loadFavorites();
+
+function showSaved() {
+  const saved = listings.filter((l) => favorites.has(l.id));
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">YOUR FAVORITES</div>
+    <h2 id="modalTitle">Saved picks</h2>
+    ${saved.map((l) => `
+      <div class="booking-summary" style="display:block;margin-bottom:10px">
+        <b>${l.title}</b><br><small>${l.provider} · ${money(l.price)} / ${l.unit}</small><br>
+        <button type="button" class="book-btn" data-book="${l.id}">Book</button>
+        <button type="button" class="book-btn" data-unsave="${l.id}">Remove</button>
+      </div>`).join("") || `<p class="modal-description">Nothing saved yet. Tap the ♡ on any listing.</p>`}
+    <button type="button" class="modal-submit" id="backAcct2" style="margin-top:10px">Back to account</button>`;
+  $("#modalBackdrop").classList.remove("hidden");
+  $("#backAcct2").onclick = openAccount;
+  document.querySelectorAll("[data-book]").forEach((b) => (b.onclick = () => openBooking(Number(b.dataset.book))));
+  document.querySelectorAll("[data-unsave]").forEach((b) => {
+    b.onclick = async () => { await toggleFavorite(Number(b.dataset.unsave)); showSaved(); };
+  });
+}
