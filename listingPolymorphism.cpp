@@ -3,7 +3,6 @@
 #include <cctype>
 using namespace std;
 
-
 bool validText(string s)
 {
     if (s.empty())
