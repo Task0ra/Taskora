@@ -11,6 +11,7 @@ bool validName(string name)
         return false;
 
     bool hasLetter = false;
+
     for (int i = 0; i < name.length(); i++)
     {
         unsigned char ch = name[i];
