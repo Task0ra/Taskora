@@ -809,3 +809,91 @@ void searchRentalProperties() {
         cout << "No available properties match your search.\n";
     }
 }
+// ==================== RENTALS: DISPLAY ALL PROPERTIES ====================
+
+void displayRentalProperties() {
+    ifstream file("rentals.txt");
+    string line;
+    bool found = false;
+
+    cout << "\n===== ALL REGISTERED RENTAL PROPERTIES =====\n";
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() >= 7) {
+            found = true;
+
+            cout << "\nProperty ID: " << f[0]
+                 << "\nOwner ID: " << f[1]
+                 << "\nType: " << f[2]
+                 << "\nTitle: " << f[3]
+                 << "\nLocation: " << f[4]
+                 << "\nRent: Rs. " << f[5] << " per month"
+                 << "\nStatus: " << f[6] << '\n';
+        }
+    }
+
+    if (!found) {
+        cout << "No rental properties registered yet.\n";
+    }
+}
+
+// ==================== RENTALS: UPDATE AVAILABILITY ====================
+
+bool updateRentalAvailability(string propertyID, string newStatus) {
+    ifstream file("rentals.txt");
+
+    if (!file) {
+        cout << "Unable to open rentals.txt.\n";
+        return false;
+    }
+
+    ofstream temp("rentals_temp.txt");
+
+    if (!temp) {
+        cout << "Unable to create temporary rental file.\n";
+        return false;
+    }
+
+    string line;
+    bool updated = false;
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() >= 7) {
+            if (f[0] == propertyID) {
+                f[6] = newStatus;
+                updated = true;
+            }
+
+            temp << f[0] << "|" << f[1] << "|" << f[2]
+                 << "|" << f[3] << "|" << f[4]
+                 << "|" << f[5] << "|" << f[6] << '\n';
+        }
+    }
+
+    file.close();
+    temp.close();
+
+    if (!updated) {
+        remove("rentals_temp.txt");
+        cout << "Property not found.\n";
+        return false;
+    }
+
+    if (remove("rentals.txt") != 0) {
+        cout << "Could not update rentals.txt.\n";
+        remove("rentals_temp.txt");
+        return false;
+    }
+
+    if (rename("rentals_temp.txt", "rentals.txt") != 0) {
+        cout << "Could not rename temporary rental file.\n";
+        return false;
+    }
+
+    return true;
+}
+
