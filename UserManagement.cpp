@@ -177,7 +177,7 @@ int main()
     cout << " CUSTOMER " << endl;
     c.inputCustomer();
 
-    cout << "\n CUSTOMER DETAILS " << endl;
+    cout << "\nCUSTOMER DETAILS " << endl;
     c.displayCustomer();
 
     cout << "\nSERVICE PROVIDER" << endl;
