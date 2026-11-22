@@ -1,7 +1,7 @@
 // Taskora bookings add-on. Load AFTER app.js, map.js and provider.js.
-const ONLINE_PAYMENTS = false; // set to true after Razorpay is set up (see razorpay_function.ts)
 const plainText = (h) => new DOMParser().parseFromString(String(h ?? ""), "text/html").documentElement.textContent;
 const STATUS_COLOR = { pending: "#b7791f", confirmed: "#2f7d4f", completed: "#2f7d4f", declined: "#b3261e", cancelled: "#777" };
+const PAY_METHODS = ["UPI", "Card", "Cash after service"];
 
 // Save every booking to Supabase when the booking form is submitted
 const baseOpenBooking = openBooking;
@@ -11,22 +11,8 @@ openBooking = function (id) {
   if (!form) return;
   const item = listings.find((l) => l.id === id);
   const original = form.onsubmit;
-  const options = [["UPI", "📱 UPI"], ["Card", "💳 Card"], ["Net banking", "🏦 Net banking"], ["Cash after service", "💵 Cash after service"]];
-  const box = document.createElement("div");
-  box.innerHTML = `<b style="font-size:13px;display:block;margin:14px 0 8px">Payment method</b>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${options.map(([v, t], i) => `
-      <label class="pay-opt" style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid #dfe5dc;border-radius:12px;cursor:pointer;font-size:14px">
-        <input type="radio" name="pay" value="${v}" ${i === 0 ? "checked" : ""} style="width:auto;margin:0">${t}</label>`).join("")}</div>`;
-  form.querySelector(".payment-note").before(box);
-  const paintPay = () => box.querySelectorAll(".pay-opt").forEach((l) =>
-    (l.style.borderColor = l.querySelector("input").checked ? "#315d46" : "#dfe5dc"));
-  box.onchange = paintPay;
-  paintPay();
-  const note = form.querySelector(".payment-note div");
-  if (note) note.innerHTML = ONLINE_PAYMENTS
-    ? "<b>Secure advance payment</b>Pay a 20% advance online through Razorpay (test mode: no real money). Cash is paid after the service."
-    : "<b>Pay after the service</b>Choose how you will pay the provider. Nothing is charged now.";
-  form.querySelector(".modal-submit").innerHTML = "Confirm booking";
+  form.querySelector(".booking-fields").insertAdjacentHTML("beforeend",
+    `<label>Payment method<select id="bookingPay">${PAY_METHODS.map((m) => `<option>${m}</option>`).join("")}</select></label>`);
 
   // show up to 3 recent reviews for this listing
   supabaseClient.from("reviews").select("rating, comment").eq("listing_ref", String(item.id))
@@ -45,22 +31,21 @@ openBooking = function (id) {
     const btn = form.querySelector(".modal-submit");
     const label = btn.innerHTML;
     btn.disabled = true;
-    const method = form.querySelector('input[name="pay"]:checked').value;
-    const advance = ONLINE_PAYMENTS && method !== "Cash after service" ? Math.max(1, Math.round(item.price * 0.2)) : 0; // 20% advance
+    const method = $("#bookingPay").value;
+    const advance = method === "Cash after service" ? 0 : Math.round(item.price * 0.2); // demo: 20% advance
     const { data, error } = await supabaseClient.from("booking_requests").insert({
       customer_id: user.id, provider_id: item.ownerId || null, listing_ref: String(item.id),
       listing_title: plainText(item.title), provider_name: plainText(item.provider),
       price: item.price, unit: plainText(item.unit),
       detail: $("#bookingDetail").value, time_slot: $("#bookingTime").value,
       phone: form.querySelector("[type=tel]").value,
-      payment_method: method, advance_amount: advance, payment_status: "unpaid"
-    }).select("id, ref").single();
+      payment_method: method, advance_amount: advance, payment_status: advance ? "advance_paid" : "unpaid"
+    }).select("ref").single();
 
     if (error) {
       btn.disabled = false; btn.innerHTML = label;
       return alert("Could not save your booking:\n\n" + error.message);
     }
-    if (advance && !(await payAdvance(data.id))) toast("Booking saved. You can pay the advance later from My bookings.");
     original(event); // shows your existing success screen
     const tag = document.querySelector(".booking-id");
     if (tag) tag.textContent = "Booking ref · " + data.ref;
@@ -74,7 +59,7 @@ async function showBookings(kind) {
 
   const incoming = kind === "incoming";
   const { data, error } = await supabaseClient.from("booking_requests").select("*")
-    .eq(incoming ? "provider_id" : "customer_id", user.id).order("created_at", { ascending: !incoming });
+    .eq(incoming ? "provider_id" : "customer_id", user.id).order("created_at", { ascending: false });
   if (error) return alert("Could not load bookings:\n\n" + error.message);
   const { data: done } = await supabaseClient.from("reviews").select("booking_id").eq("customer_id", user.id);
   const reviewed = new Set((done || []).map((r) => r.booking_id));
@@ -86,12 +71,11 @@ async function showBookings(kind) {
       <small>${escapeHtml(b.time_slot)} · ${escapeHtml(b.detail)} · ${money(b.price)} / ${escapeHtml(b.unit)}
         ${incoming ? " · " + escapeHtml(b.phone) : ""}</small><br>
       <b style="color:${STATUS_COLOR[b.status]}">${b.status}</b>
-      <small> · ${escapeHtml(b.payment_method || "")} · ${escapeHtml({ unpaid: "to pay after service", advance_paid: "advance paid", paid: "paid" }[b.payment_status] || b.payment_status || "")}${b.advance_amount ? " · advance " + money(b.advance_amount) : ""}</small>
+      <small> · ${escapeHtml(b.payment_method || "")} · ${escapeHtml((b.payment_status || "").replace("_", " "))}${b.advance_amount ? " · advance " + money(b.advance_amount) : ""}</small>
       ${incoming && b.status === "pending" ? "<br>" + btn("confirmed", b.id, "Accept") + btn("declined", b.id, "Decline") : ""}
       ${incoming && b.status === "confirmed" ? "<br>" + btn("completed", b.id, "Mark completed") : ""}
       ${incoming && ["confirmed", "completed"].includes(b.status) && b.payment_status !== "paid" ? "<br>" + btn("pay", b.id, "Mark payment received") : ""}
       ${!incoming && b.status === "pending" ? "<br>" + btn("cancelled", b.id, "Cancel request") : ""}
-      ${!incoming && b.payment_status === "unpaid" && b.advance_amount > 0 && ["pending", "confirmed"].includes(b.status) ? "<br>" + btn("payadv", b.id, "Pay advance " + money(b.advance_amount)) : ""}
       ${!incoming && b.status === "completed" ? "<br>" + (reviewed.has(b.id) ? "<small>Reviewed ✓</small>"
         : `<button type="button" class="book-btn" data-review="${b.id}">Rate this service</button>`) : ""}
     </div>`).join("");
@@ -109,11 +93,6 @@ async function showBookings(kind) {
   document.querySelectorAll("[data-act]").forEach((b) => {
     b.onclick = async () => {
       b.disabled = true;
-      if (b.dataset.act === "payadv") {
-        const ok = await payAdvance(Number(b.dataset.id));
-        toast(ok ? "Advance paid. Thank you!" : "Payment not completed");
-        return showBookings(kind);
-      }
       const { error: err } = await supabaseClient.from("booking_requests")
         .update(b.dataset.act === "pay" ? { payment_status: "paid" } : { status: b.dataset.act }).eq("id", b.dataset.id);
       toast(err ? err.message : "Booking " + b.dataset.act);
@@ -246,28 +225,5 @@ function showSaved() {
   document.querySelectorAll("[data-book]").forEach((b) => (b.onclick = () => openBooking(Number(b.dataset.book))));
   document.querySelectorAll("[data-unsave]").forEach((b) => {
     b.onclick = async () => { await toggleFavorite(Number(b.dataset.unsave)); showSaved(); };
-  });
-}
-
-// ---------- Razorpay advance payment (test mode) ----------
-async function payAdvance(bookingId) {
-  if (typeof Razorpay === "undefined") { alert("Razorpay did not load. Check the script line in index.html."); return false; }
-  const { data, error } = await supabaseClient.functions.invoke("razorpay", { body: { action: "create", booking_id: bookingId } });
-  if (error || data?.error) { alert("Could not start the payment:\n\n" + (data?.error || error.message)); return false; }
-
-  return new Promise((resolve) => {
-    const checkout = new Razorpay({
-      key: data.key_id, amount: data.amount, currency: "INR", order_id: data.order_id,
-      name: "Taskora", description: "Booking advance", theme: { color: "#315d46" },
-      handler: async (resp) => {
-        const { data: v, error: e2 } = await supabaseClient.functions.invoke("razorpay",
-          { body: { action: "verify", booking_id: bookingId, ...resp } });
-        if (e2 || v?.error) { alert("Payment could not be verified:\n\n" + (v?.error || e2.message)); return resolve(false); }
-        resolve(true);
-      },
-      modal: { ondismiss: () => resolve(false) }
-    });
-    checkout.on("payment.failed", (r) => alert("Payment failed: " + r.error.description));
-    checkout.open();
   });
 }
