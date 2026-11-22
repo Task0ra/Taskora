@@ -2,7 +2,7 @@
 const plainText = (h) => new DOMParser().parseFromString(String(h ?? ""), "text/html").documentElement.textContent;
 const STATUS_COLOR = { pending: "#b7791f", confirmed: "#2f7d4f", completed: "#2f7d4f", declined: "#b3261e", cancelled: "#777" };
 
-
+// Save every booking to Supabase when the booking form is submitted
 const baseOpenBooking = openBooking;
 openBooking = function (id) {
   baseOpenBooking(id);
@@ -139,6 +139,10 @@ function openReview(b) {
   $("#reviewForm").onsubmit = async (e) => {
     e.preventDefault();
     if (!stars) return toast("Tap a star rating first");
+    const submitBtn = e.target.querySelector(".modal-submit");
+    if (submitBtn.disabled) return; // ignore double taps
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving…";
     const { data: s } = await supabaseClient.auth.getSession();
     const user = s.session?.user;
     if (!user) return showAuthForm("login");
@@ -146,7 +150,16 @@ function openReview(b) {
       booking_id: b.id, customer_id: user.id, provider_id: b.provider_id,
       listing_ref: b.listing_ref, rating: stars, comment: $("#rvText").value.trim()
     });
-    if (error) return alert("Could not save your review:\n\n" + error.message);
+    if (error) {
+      if (error.code === "23505") { // this booking already has a review
+        toast("You've already reviewed this booking");
+        await loadProviderListings();
+        return showBookings("mine");
+      }
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit review";
+      return alert("Could not save your review:\n\n" + error.message);
+    }
     toast("Thanks for your review!");
     await loadProviderListings(); // refresh the star rating on the cards
     showBookings("mine");
