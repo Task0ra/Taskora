@@ -186,6 +186,43 @@ bool idExists(string filename, string id) {
     return false;
 }
 
+// ==================== CUSTOMER REGISTRATION ====================
+
+void registerCustomer() {
+    Customer c;
+
+    cout << "\n===== CUSTOMER REGISTRATION =====\n";
+
+    c.id = readText("Create customer ID: ");
+
+    if (c.id.empty() || idExists("customers.txt", c.id)) {
+        cout << "ID is empty or already registered.\n";
+        return;
+    }
+
+    c.name = readText("Enter name: ");
+    c.phone = readText("Enter phone number: ");
+    c.area = readText("Enter area/locality: ");
+    c.password = readText("Create password: ");
+
+    if (c.name.empty() || c.password.empty()) {
+        cout << "Name and password cannot be empty.\n";
+        return;
+    }
+
+    ofstream file("customers.txt", ios::app);
+
+    if (!file) {
+        cout << "Unable to open customers.txt.\n";
+        return;
+    }
+
+    file << c.id << "|" << c.name << "|" << c.phone
+         << "|" << c.area << "|" << c.password << '\n';
+
+    cout << "Customer registered successfully!\n";
+}
+
 // ==================== PROVIDER REGISTRATION ====================
 
 void registerProvider() {
