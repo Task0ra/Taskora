@@ -309,3 +309,51 @@ void displayCustomers() {
         cout << "No customers registered yet.\n";
     }
 }
+
+// ==================== DISPLAY PROVIDERS ====================
+
+void displayProviders() {
+    ifstream file("providers.txt");
+    string line;
+    bool found = false;
+
+    cout << "\n===== REGISTERED SERVICE PROVIDERS =====\n";
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() >= 7) {
+            found = true;
+
+            double charge = 0.0;
+
+            if (f.size() >= 8) {
+                try {
+                    charge = stod(f[7]);
+                } catch (...) {
+                    charge = 0.0;
+                }
+            }
+
+            cout << "\nID: " << f[0]
+                 << "\nName: " << f[1]
+                 << "\nPhone: " << f[2]
+                 << "\nService: " << f[3]
+                 << "\nArea: " << f[4]
+                 << "\nStatus: " << f[6];
+
+            if (f.size() >= 8) {
+                cout << "\nService charge: Rs. " << charge
+                     << " per hour";
+            } else {
+                cout << "\nService charge: Not set (older record)";
+            }
+
+            cout << '\n';
+        }
+    }
+
+    if (!found) {
+        cout << "No service providers registered yet.\n";
+    }
+}
