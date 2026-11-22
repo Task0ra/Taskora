@@ -10,6 +10,8 @@ openBooking = function (id) {
   if (!form) return;
   const item = listings.find((l) => l.id === id);
   const original = form.onsubmit;
+  form.querySelector(".booking-fields").insertAdjacentHTML("beforeend",
+    `<label>Payment method<select id="bookingPay"><option>UPI</option><option>Card</option><option>Cash on service</option></select></label>`);
 
   // show up to 3 recent reviews for this listing
   supabaseClient.from("reviews").select("rating, comment").eq("listing_ref", String(item.id))
@@ -28,12 +30,15 @@ openBooking = function (id) {
     const btn = form.querySelector(".modal-submit");
     const label = btn.innerHTML;
     btn.disabled = true;
+    const method = $("#bookingPay").value;
+    const advance = method === "Cash on service" ? 0 : Math.round(item.price * 0.2); // demo: 20% advance
     const { data, error } = await supabaseClient.from("booking_requests").insert({
       customer_id: user.id, provider_id: item.ownerId || null, listing_ref: String(item.id),
       listing_title: plainText(item.title), provider_name: plainText(item.provider),
       price: item.price, unit: plainText(item.unit),
       detail: $("#bookingDetail").value, time_slot: $("#bookingTime").value,
-      phone: form.querySelector("[type=tel]").value
+      phone: form.querySelector("[type=tel]").value,
+      payment_method: method, advance_amount: advance, payment_status: advance ? "advance_paid" : "unpaid"
     }).select("ref").single();
 
     if (error) {
@@ -65,8 +70,10 @@ async function showBookings(kind) {
       <small>${escapeHtml(b.time_slot)} · ${escapeHtml(b.detail)} · ${money(b.price)} / ${escapeHtml(b.unit)}
         ${incoming ? " · " + escapeHtml(b.phone) : ""}</small><br>
       <b style="color:${STATUS_COLOR[b.status]}">${b.status}</b>
+      <small> · ${escapeHtml(b.payment_method || "")} · ${escapeHtml((b.payment_status || "").replace("_", " "))}${b.advance_amount ? " · advance " + money(b.advance_amount) : ""}</small>
       ${incoming && b.status === "pending" ? "<br>" + btn("confirmed", b.id, "Accept") + btn("declined", b.id, "Decline") : ""}
       ${incoming && b.status === "confirmed" ? "<br>" + btn("completed", b.id, "Mark completed") : ""}
+      ${incoming && ["confirmed", "completed"].includes(b.status) && b.payment_status !== "paid" ? "<br>" + btn("pay", b.id, "Mark payment received") : ""}
       ${!incoming && b.status === "pending" ? "<br>" + btn("cancelled", b.id, "Cancel request") : ""}
       ${!incoming && b.status === "completed" ? "<br>" + (reviewed.has(b.id) ? "<small>Reviewed ✓</small>"
         : `<button type="button" class="book-btn" data-review="${b.id}">Rate this service</button>`) : ""}
@@ -86,7 +93,7 @@ async function showBookings(kind) {
     b.onclick = async () => {
       b.disabled = true;
       const { error: err } = await supabaseClient.from("booking_requests")
-        .update({ status: b.dataset.act }).eq("id", b.dataset.id);
+        .update(b.dataset.act === "pay" ? { payment_status: "paid" } : { status: b.dataset.act }).eq("id", b.dataset.id);
       toast(err ? err.message : "Booking " + b.dataset.act);
       showBookings(kind);
     };
@@ -104,8 +111,10 @@ openAccount = async function () {
   const first = $("#acctList");
   if (!first) return;
   first.insertAdjacentHTML("beforebegin", `
+    <button class="modal-submit" id="acctSaved" type="button" style="margin-top:10px">Saved picks (${favorites.size})</button>
     <button class="modal-submit" id="acctBookings" type="button" style="margin-top:10px">My bookings</button>
     <button class="modal-submit" id="acctRequests" type="button" style="margin:10px 0">Booking requests (for providers)</button>`);
+  $("#acctSaved").onclick = showSaved;
   $("#acctBookings").onclick = () => showBookings("mine");
   $("#acctRequests").onclick = () => showBookings("incoming");
 };
@@ -139,6 +148,10 @@ function openReview(b) {
   $("#reviewForm").onsubmit = async (e) => {
     e.preventDefault();
     if (!stars) return toast("Tap a star rating first");
+    const submitBtn = e.target.querySelector(".modal-submit");
+    if (submitBtn.disabled) return; // ignore double taps
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving…";
     const { data: s } = await supabaseClient.auth.getSession();
     const user = s.session?.user;
     if (!user) return showAuthForm("login");
@@ -146,9 +159,70 @@ function openReview(b) {
       booking_id: b.id, customer_id: user.id, provider_id: b.provider_id,
       listing_ref: b.listing_ref, rating: stars, comment: $("#rvText").value.trim()
     });
-    if (error) return alert("Could not save your review:\n\n" + error.message);
+    if (error) {
+      if (error.code === "23505") { // this booking already has a review
+        toast("You've already reviewed this booking");
+        await loadProviderListings();
+        return showBookings("mine");
+      }
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit review";
+      return alert("Could not save your review:\n\n" + error.message);
+    }
     toast("Thanks for your review!");
     await loadProviderListings(); // refresh the star rating on the cards
     showBookings("mine");
   };
+}
+
+// ---------- Saved favorites (kept in the database) ----------
+const baseToggleFavorite = toggleFavorite;
+toggleFavorite = async function (id) {
+  const { data: s } = await supabaseClient.auth.getSession();
+  const user = s.session?.user;
+  if (!user) { toast("Sign in to save favorites"); return showAuthForm("login"); }
+
+  const wasSaved = favorites.has(id);
+  baseToggleFavorite(id); // update the heart instantly
+  const table = supabaseClient.from("saved_listings");
+  const { error } = wasSaved
+    ? await table.delete().eq("user_id", user.id).eq("listing_ref", String(id))
+    : await table.insert({ user_id: user.id, listing_ref: String(id) });
+  if (error && error.code !== "23505") {
+    baseToggleFavorite(id); // undo the heart
+    alert("Could not save your favorite:\n\n" + error.message);
+  }
+};
+
+async function loadFavorites() {
+  const { data: s } = await supabaseClient.auth.getSession();
+  const user = s.session?.user;
+  favorites.clear();
+  if (user) {
+    const { data } = await supabaseClient.from("saved_listings").select("listing_ref").eq("user_id", user.id);
+    (data || []).forEach((r) => favorites.add(Number(r.listing_ref)));
+  }
+  render();
+}
+supabaseClient.auth.onAuthStateChange(() => setTimeout(loadFavorites, 0));
+loadFavorites();
+
+function showSaved() {
+  const saved = listings.filter((l) => favorites.has(l.id));
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">YOUR FAVORITES</div>
+    <h2 id="modalTitle">Saved picks</h2>
+    ${saved.map((l) => `
+      <div class="booking-summary" style="display:block;margin-bottom:10px">
+        <b>${l.title}</b><br><small>${l.provider} · ${money(l.price)} / ${l.unit}</small><br>
+        <button type="button" class="book-btn" data-book="${l.id}">Book</button>
+        <button type="button" class="book-btn" data-unsave="${l.id}">Remove</button>
+      </div>`).join("") || `<p class="modal-description">Nothing saved yet. Tap the ♡ on any listing.</p>`}
+    <button type="button" class="modal-submit" id="backAcct2" style="margin-top:10px">Back to account</button>`;
+  $("#modalBackdrop").classList.remove("hidden");
+  $("#backAcct2").onclick = openAccount;
+  document.querySelectorAll("[data-book]").forEach((b) => (b.onclick = () => openBooking(Number(b.dataset.book))));
+  document.querySelectorAll("[data-unsave]").forEach((b) => {
+    b.onclick = async () => { await toggleFavorite(Number(b.dataset.unsave)); showSaved(); };
+  });
 }
