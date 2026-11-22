@@ -658,4 +658,154 @@ public:
         }
     }
 };
+// ==================== CUSTOMER: SEARCH SERVICE ====================
 
+void searchService() {
+    cout << "\nSelect the service you need from the list below.\n";
+
+    string service = chooseService();
+
+    if (service.empty()) {
+        cout << "Service search cancelled because no valid service was selected.\n";
+        return;
+    }
+
+    string area = readText(
+        "Enter preferred area/locality (or press Enter to skip): ");
+
+    ProviderList providers;
+    providers.loadFromFile();
+
+    cout << "\n===== AVAILABLE SERVICE PROVIDERS =====\n";
+    providers.search(service, area);
+}
+
+// ==================== RENTALS: REGISTER PROPERTY ====================
+
+void registerRentalProperty() {
+    RentalProperty p;
+
+    cout << "\n===== REGISTER RENTAL PROPERTY =====\n";
+
+    p.propertyID = readText("Create property ID: ");
+
+    if (p.propertyID.empty() ||
+        idExists("rentals.txt", p.propertyID)) {
+        cout << "Property ID is empty or already exists.\n";
+        return;
+    }
+
+    p.ownerID = readText("Enter registered provider/owner ID: ");
+
+    if (!idExists("providers.txt", p.ownerID)) {
+        cout << "Owner ID must belong to a registered provider.\n";
+        return;
+    }
+
+    cout << "\nProperty type:\n";
+    cout << "1. Room\n";
+    cout << "2. Shop/Store\n";
+    cout << "3. Other Property\n";
+    cout << "Enter choice: ";
+
+    int choice;
+
+    if (!readChoice(choice)) {
+        return;
+    }
+
+    if (choice == 1) {
+        p.type = "Room";
+    } else if (choice == 2) {
+        p.type = "Shop/Store";
+    } else if (choice == 3) {
+        p.type = "Other Property";
+    } else {
+        cout << "Invalid property type.\n";
+        return;
+    }
+
+    p.title = readText("Enter property title/description: ");
+    p.location = readText("Enter property area/locality: ");
+
+    if (p.title.empty() || p.location.empty()) {
+        cout << "Title and location cannot be empty.\n";
+        return;
+    }
+
+    if (!readPositiveAmount("Enter rent per month (Rs.): ", p.rent)) {
+        return;
+    }
+
+    p.availability = "Available";
+
+    ofstream file("rentals.txt", ios::app);
+
+    if (!file) {
+        cout << "Unable to save rental property.\n";
+        return;
+    }
+
+    file << p.propertyID << "|" << p.ownerID << "|" << p.type
+         << "|" << p.title << "|" << p.location << "|"
+         << p.rent << "|" << p.availability << '\n';
+
+    cout << "Rental property registered successfully!\n";
+}
+
+// ==================== RENTALS: SEARCH PROPERTY ====================
+
+void searchRentalProperties() {
+    string type;
+    string area;
+
+    cout << "\n===== SEARCH RENTAL PROPERTIES =====\n";
+
+    cout << "Enter type (Room, Shop/Store, Other Property) "
+         << "or press Enter for all: ";
+    getline(cin, type);
+
+    cout << "Enter preferred area/locality or press Enter for all: ";
+    getline(cin, area);
+
+    type = toLowerCase(type);
+    area = toLowerCase(area);
+
+    ifstream file("rentals.txt");
+    string line;
+    bool found = false;
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() < 7) {
+            continue;
+        }
+
+        bool typeMatches =
+            type.empty() || toLowerCase(f[2]) == type;
+
+        bool areaMatches =
+            area.empty() ||
+            toLowerCase(f[4]).find(area) != string::npos;
+
+        if (typeMatches &&
+            areaMatches &&
+            toLowerCase(f[6]) == "available") {
+
+            found = true;
+
+            cout << "\n-----------------------------\n";
+            cout << "Property ID: " << f[0]
+                 << "\nType: " << f[2]
+                 << "\nTitle: " << f[3]
+                 << "\nLocation: " << f[4]
+                 << "\nRent: Rs. " << f[5] << " per month"
+                 << "\nStatus: " << f[6] << '\n';
+        }
+    }
+
+    if (!found) {
+        cout << "No available properties match your search.\n";
+    }
+}
