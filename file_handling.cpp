@@ -754,3 +754,60 @@ void registerRentalProperty() {
 
     cout << "Rental property registered successfully!\n";
 }
+
+// ==================== RENTALS: SEARCH PROPERTY ====================
+
+void searchRentalProperties() {
+    string type;
+    string area;
+
+    cout << "\n===== SEARCH RENTAL PROPERTIES =====\n";
+
+    cout << "Enter type (Room, Shop/Store, Other Property) "
+         << "or press Enter for all: ";
+    getline(cin, type);
+
+    cout << "Enter preferred area/locality or press Enter for all: ";
+    getline(cin, area);
+
+    type = toLowerCase(type);
+    area = toLowerCase(area);
+
+    ifstream file("rentals.txt");
+    string line;
+    bool found = false;
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() < 7) {
+            continue;
+        }
+
+        bool typeMatches =
+            type.empty() || toLowerCase(f[2]) == type;
+
+        bool areaMatches =
+            area.empty() ||
+            toLowerCase(f[4]).find(area) != string::npos;
+
+        if (typeMatches &&
+            areaMatches &&
+            toLowerCase(f[6]) == "available") {
+
+            found = true;
+
+            cout << "\n-----------------------------\n";
+            cout << "Property ID: " << f[0]
+                 << "\nType: " << f[2]
+                 << "\nTitle: " << f[3]
+                 << "\nLocation: " << f[4]
+                 << "\nRent: Rs. " << f[5] << " per month"
+                 << "\nStatus: " << f[6] << '\n';
+        }
+    }
+
+    if (!found) {
+        cout << "No available properties match your search.\n";
+    }
+}
