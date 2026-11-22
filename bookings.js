@@ -104,8 +104,10 @@ openAccount = async function () {
   const first = $("#acctList");
   if (!first) return;
   first.insertAdjacentHTML("beforebegin", `
+    <button class="modal-submit" id="acctSaved" type="button" style="margin-top:10px">Saved picks (${favorites.size})</button>
     <button class="modal-submit" id="acctBookings" type="button" style="margin-top:10px">My bookings</button>
     <button class="modal-submit" id="acctRequests" type="button" style="margin:10px 0">Booking requests (for providers)</button>`);
+  $("#acctSaved").onclick = showSaved;
   $("#acctBookings").onclick = () => showBookings("mine");
   $("#acctRequests").onclick = () => showBookings("incoming");
 };
@@ -164,4 +166,56 @@ function openReview(b) {
     await loadProviderListings(); // refresh the star rating on the cards
     showBookings("mine");
   };
+}
+
+// ---------- Saved favorites (kept in the database) ----------
+const baseToggleFavorite = toggleFavorite;
+toggleFavorite = async function (id) {
+  const { data: s } = await supabaseClient.auth.getSession();
+  const user = s.session?.user;
+  if (!user) { toast("Sign in to save favorites"); return showAuthForm("login"); }
+
+  const wasSaved = favorites.has(id);
+  baseToggleFavorite(id); // update the heart instantly
+  const table = supabaseClient.from("saved_listings");
+  const { error } = wasSaved
+    ? await table.delete().eq("user_id", user.id).eq("listing_ref", String(id))
+    : await table.insert({ user_id: user.id, listing_ref: String(id) });
+  if (error && error.code !== "23505") {
+    baseToggleFavorite(id); // undo the heart
+    alert("Could not save your favorite:\n\n" + error.message);
+  }
+};
+
+async function loadFavorites() {
+  const { data: s } = await supabaseClient.auth.getSession();
+  const user = s.session?.user;
+  favorites.clear();
+  if (user) {
+    const { data } = await supabaseClient.from("saved_listings").select("listing_ref").eq("user_id", user.id);
+    (data || []).forEach((r) => favorites.add(Number(r.listing_ref)));
+  }
+  render();
+}
+supabaseClient.auth.onAuthStateChange(() => setTimeout(loadFavorites, 0));
+loadFavorites();
+
+function showSaved() {
+  const saved = listings.filter((l) => favorites.has(l.id));
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">YOUR FAVORITES</div>
+    <h2 id="modalTitle">Saved picks</h2>
+    ${saved.map((l) => `
+      <div class="booking-summary" style="display:block;margin-bottom:10px">
+        <b>${l.title}</b><br><small>${l.provider} · ${money(l.price)} / ${l.unit}</small><br>
+        <button type="button" class="book-btn" data-book="${l.id}">Book</button>
+        <button type="button" class="book-btn" data-unsave="${l.id}">Remove</button>
+      </div>`).join("") || `<p class="modal-description">Nothing saved yet. Tap the ♡ on any listing.</p>`}
+    <button type="button" class="modal-submit" id="backAcct2" style="margin-top:10px">Back to account</button>`;
+  $("#modalBackdrop").classList.remove("hidden");
+  $("#backAcct2").onclick = openAccount;
+  document.querySelectorAll("[data-book]").forEach((b) => (b.onclick = () => openBooking(Number(b.dataset.book))));
+  document.querySelectorAll("[data-unsave]").forEach((b) => {
+    b.onclick = async () => { await toggleFavorite(Number(b.dataset.unsave)); showSaved(); };
+  });
 }
