@@ -2,7 +2,6 @@
 #include <string>
 #include <cctype>
 using namespace std;
-
 bool validText(string s)
 {
     for (int i = 0; i < s.length(); i++)
