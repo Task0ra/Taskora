@@ -103,8 +103,10 @@ async function openProviderForm() {
       <button class="modal-submit" type="submit">Publish listing</button>
     </form>
     ${mine.length ? `<h3 style="margin-top:22px">Your listings</h3>` + mine.map((l) => `
-      <div class="booking-summary">
-        <span>${l.title}</span>
+      <div class="booking-summary" style="display:block;margin-bottom:8px">
+        <b>${l.title}</b> · ${money(l.price)} / ${l.unit}<br>
+        <button type="button" class="book-btn" data-edit="${l.dbId}">Edit</button>
+        <button type="button" class="book-btn" data-avail="${l.dbId}">${l.available ? "Available today ✓" : "Unavailable"}</button>
         <button type="button" class="book-btn" data-remove="${l.dbId}">Remove</button>
       </div>`).join("") : ""}
   `;
@@ -178,6 +180,59 @@ async function openProviderForm() {
       openProviderForm();
     };
   });
+
+  document.querySelectorAll("[data-avail]").forEach((b) => {
+    b.onclick = async () => {
+      const l = listings.find((x) => x.dbId === Number(b.dataset.avail));
+      const { error } = await supabaseClient.from("listings").update({ available: !l.available }).eq("id", l.dbId);
+      toast(error ? error.message : l.available ? "Marked unavailable" : "Marked available today");
+      await loadProviderListings();
+      openProviderForm();
+    };
+  });
+  document.querySelectorAll("[data-edit]").forEach((b) => {
+    b.onclick = () => openEditListing(listings.find((x) => x.dbId === Number(b.dataset.edit)));
+  });
+}
+
+function openEditListing(l) {
+  const v = (h) => escapeHtml(plainText2(h));
+  $("#modalContent").innerHTML = `
+    <div class="modal-kicker">EDIT LISTING</div><h2 id="modalTitle">${l.title}</h2>
+    <form id="editForm"><div class="booking-fields">
+      <label>Title<input id="edTitle" required maxlength="80" value="${v(l.title)}"></label>
+      <label>Price (₹)<input id="edPrice" type="number" min="1" required value="${l.price}"></label>
+      <label>Per<input id="edUnit" required value="${v(l.unit)}"></label>
+      <label>Description<input id="edDesc" maxlength="300" value="${v(l.desc)}"></label>
+      <label>New photo (optional, under 3 MB)<input id="edFile" type="file" accept="image/*"></label>
+    </div>
+    <button class="modal-submit" type="submit">Save changes</button>
+    <button class="modal-submit" type="button" id="edBack" style="margin-top:10px;background:#fff;color:#315d46;border:1px solid #315d46">Cancel</button></form>`;
+  $("#modalBackdrop").classList.remove("hidden");
+  $("#edBack").onclick = openProviderForm;
+
+  $("#editForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector("[type=submit]");
+    btn.disabled = true; btn.textContent = "Saving…";
+    const fail = (msg) => { btn.disabled = false; btn.textContent = "Save changes"; alert(msg); };
+
+    const patch = { title: $("#edTitle").value.trim(), price: Number($("#edPrice").value),
+      unit: $("#edUnit").value.trim(), description: $("#edDesc").value.trim() };
+    const file = $("#edFile").files[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) return fail("Please choose a photo under 3 MB.");
+      const path = `${l.ownerId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const { error: upErr } = await supabaseClient.storage.from("listing-photos").upload(path, file, { contentType: file.type });
+      if (upErr) return fail("Photo upload failed:\n\n" + upErr.message);
+      patch.image = supabaseClient.storage.from("listing-photos").getPublicUrl(path).data.publicUrl;
+    }
+    const { error } = await supabaseClient.from("listings").update(patch).eq("id", l.dbId);
+    if (error) return fail("Could not save changes:\n\n" + error.message);
+    toast("Listing updated");
+    await loadProviderListings();
+    openProviderForm();
+  };
 }
 
 $("#providerBtn").onclick = openProviderForm;
