@@ -10,7 +10,6 @@ bool validText(string s)
         if (!isalpha(s[i]) && s[i] != ' ')
             return false;
     }
-
     return !s.empty();
 }
 
