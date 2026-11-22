@@ -4,7 +4,6 @@
 #include <sstream>
 #include <cctype>
 using namespace std;
-
 bool validName(string name)
 {
     if (name.empty())
