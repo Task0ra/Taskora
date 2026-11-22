@@ -284,3 +284,28 @@ void registerProvider() {
     cout << "Your charge: Rs. " << p.serviceChargePerHour
          << " per hour.\n";
 }
+// ==================== DISPLAY CUSTOMERS ====================
+
+void displayCustomers() {
+    ifstream file("customers.txt");
+    string line;
+    bool found = false;
+
+    cout << "\n===== REGISTERED CUSTOMERS =====\n";
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() >= 5) {
+            found = true;
+            cout << "\nID: " << f[0]
+                 << "\nName: " << f[1]
+                 << "\nPhone: " << f[2]
+                 << "\nArea: " << f[3] << '\n';
+        }
+    }
+
+    if (!found) {
+        cout << "No customers registered yet.\n";
+    }
+}
