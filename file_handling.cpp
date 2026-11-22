@@ -222,3 +222,65 @@ void registerCustomer() {
 
     cout << "Customer registered successfully!\n";
 }
+
+// ==================== PROVIDER REGISTRATION ====================
+
+void registerProvider() {
+    ServiceProvider p;
+
+    cout << "\n===== SERVICE PROVIDER REGISTRATION =====\n";
+
+    p.id = readText("Create provider ID: ");
+
+    if (p.id.empty() || idExists("providers.txt", p.id)) {
+        cout << "ID is empty or already registered.\n";
+        return;
+    }
+
+    p.name = readText("Enter name: ");
+    p.phone = readText("Enter phone number: ");
+    p.service = chooseService();
+
+    if (p.service.empty()) {
+        cout << "Provider registration cancelled because no valid service was selected.\n";
+        return;
+    }
+
+    p.area = readText("Enter area/locality: ");
+
+    if (p.name.empty()) {
+        cout << "Name cannot be empty.\n";
+        return;
+    }
+
+    if (!readPositiveAmount(
+            "Set your service charge per hour (Rs.): ",
+            p.serviceChargePerHour)) {
+        return;
+    }
+
+    p.password = readText("Create password: ");
+
+    if (p.password.empty()) {
+        cout << "Password cannot be empty.\n";
+        return;
+    }
+
+    p.status = "Off Duty";
+
+    ofstream file("providers.txt", ios::app);
+
+    if (!file) {
+        cout << "Unable to open providers.txt.\n";
+        return;
+    }
+
+    file << p.id << "|" << p.name << "|" << p.phone
+         << "|" << p.service << "|" << p.area
+         << "|" << p.password << "|" << p.status
+         << "|" << p.serviceChargePerHour << '\n';
+
+    cout << "Provider registered successfully!\n";
+    cout << "Your charge: Rs. " << p.serviceChargePerHour
+         << " per hour.\n";
+}
