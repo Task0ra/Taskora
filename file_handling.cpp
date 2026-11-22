@@ -535,3 +535,127 @@ void submitRating() {
     file << providerID << "|" << rating << '\n';
     cout << "Rating submitted successfully!\n";
 }
+
+// ==================== DS: LINKED LIST FOR PROVIDERS ====================
+
+struct ProviderNode {
+    ServiceProvider data;
+    ProviderNode* next;
+
+    ProviderNode(const ServiceProvider& p) : data(p), next(nullptr) {}
+};
+
+class ProviderList {
+private:
+    ProviderNode* head;
+
+public:
+    ProviderList() : head(nullptr) {}
+
+    ~ProviderList() {
+        clear();
+    }
+
+    void clear() {
+        while (head != nullptr) {
+            ProviderNode* temp = head;
+            head = head->next;
+            delete temp;
+        }
+    }
+
+    void insert(const ServiceProvider& p) {
+        ProviderNode* node = new ProviderNode(p);
+        node->next = head;
+        head = node;
+    }
+
+    void loadFromFile() {
+        clear();
+
+        ifstream file("providers.txt");
+        string line;
+
+        while (getline(file, line)) {
+            vector<string> f = splitLine(line);
+
+            if (f.size() < 7) {
+                continue;
+            }
+
+            ServiceProvider p;
+            p.id = f[0];
+            p.name = f[1];
+            p.phone = f[2];
+            p.service = f[3];
+            p.area = f[4];
+            p.password = f[5];
+            p.status = f[6];
+
+            p.serviceChargePerHour = 0.0;
+
+            if (f.size() >= 8) {
+                try {
+                    p.serviceChargePerHour = stod(f[7]);
+                } catch (...) {
+                    p.serviceChargePerHour = 0.0;
+                }
+            }
+
+            insert(p);
+        }
+    }
+
+    void search(string requiredService, string requiredArea) {
+        ProviderNode* current = head;
+        bool found = false;
+
+        requiredService = toLowerCase(requiredService);
+        requiredArea = toLowerCase(requiredArea);
+
+        while (current != nullptr) {
+            ServiceProvider p = current->data;
+
+            bool serviceMatches =
+                toLowerCase(p.service) == requiredService;
+
+            bool areaMatches =
+                requiredArea.empty() ||
+                toLowerCase(p.area).find(requiredArea) != string::npos;
+
+            if (serviceMatches &&
+                areaMatches &&
+                toLowerCase(p.status) == "on duty") {
+
+                int ratingCount = 0;
+                double average = getAverageRating(p.id, ratingCount);
+
+                found = true;
+
+                cout << "\n-----------------------------\n";
+                cout << "Provider ID: " << p.id
+                     << "\nName: " << p.name
+                     << "\nPhone: " << p.phone
+                     << "\nService: " << p.service
+                     << "\nArea: " << p.area
+                     << "\nService charge: Rs. "
+                     << p.serviceChargePerHour << " per hour";
+
+                if (ratingCount > 0) {
+                    cout << "\nAverage rating: " << average
+                         << "/5 (" << ratingCount << " review(s))";
+                } else {
+                    cout << "\nAverage rating: No ratings yet";
+                }
+
+                cout << '\n';
+            }
+
+            current = current->next;
+        }
+
+        if (!found) {
+            cout << "No On Duty provider found for that service and area.\n";
+        }
+    }
+};
