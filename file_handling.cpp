@@ -947,3 +947,43 @@ void bookRentalProperty(string customerID) {
     cout << "Property booked successfully!\n";
     cout << "Booking ID: " << bookingID << '\n';
 }
+
+// ==================== CUSTOMER MENU ====================
+
+void customerMenu(string customerID) {
+    int choice;
+
+    cout << "\n===== CUSTOMER MENU =====\n";
+    cout << "1. Search for a service\n";
+    cout << "2. Submit a provider rating\n";
+    cout << "3. Search rental properties\n";
+    cout << "4. Book a rental property\n";
+    cout << "Enter choice: ";
+
+    if (!readChoice(choice)) {
+        return;
+    }
+
+    switch (choice) {
+        case 1:
+            searchService();
+            break;
+
+        case 2:
+            submitRating();
+            break;
+
+        case 3:
+            searchRentalProperties();
+            break;
+
+        case 4:
+            bookRentalProperty(customerID);
+            break;
+
+        default:
+            cout << "Invalid choice.\n";
+    }
+
+    cout << "Returning to the main menu...\n";
+}
