@@ -2,7 +2,7 @@
 const DEHRADUN = { lat: 30.3243, lng: 78.0420 }; // Clock Tower
 let userPos = { ...DEHRADUN };
 let lastPlace = "Dehradun, Uttarakhand";
-let leafletMap, markerLayer;
+let leafletMap, markerLayer, accuracy = null;
 
 // Approximate sample positions for your demo listings (by id)
 const SAMPLE = {
@@ -69,6 +69,15 @@ function ensureMap() {
     maxZoom: 19, attribution: "© OpenStreetMap contributors"
   }).addTo(leafletMap);
   markerLayer = L.layerGroup().addTo(leafletMap);
+  const ctl = L.control({ position: "bottomright" });
+  ctl.onAdd = () => {
+    const btn = L.DomUtil.create("button", "locate-me");
+    btn.type = "button"; btn.title = "Show my exact location"; btn.textContent = "📍";
+    L.DomEvent.disableClickPropagation(btn);
+    btn.onclick = () => locateMe();
+    return btn;
+  };
+  ctl.addTo(leafletMap);
   leafletMap.on("popupopen", (e) => {
     const link = e.popup.getElement().querySelector("[data-map-book]");
     if (link) link.onclick = (ev) => { ev.preventDefault(); openBooking(Number(link.dataset.mapBook)); };
@@ -77,8 +86,11 @@ function ensureMap() {
 function drawMap(rows) {
   ensureMap();
   markerLayer.clearLayers();
-  L.circleMarker([userPos.lat, userPos.lng], { radius: 8, color: "#315d46", fillColor: "#c9e5a8", fillOpacity: 1 })
-    .bindTooltip("You are here").addTo(markerLayer);
+  if (accuracy) L.circle([userPos.lat, userPos.lng], { radius: Math.min(accuracy, 500), color: "#2f6fed", weight: 1, fillOpacity: 0.12 }).addTo(markerLayer);
+  L.marker([userPos.lat, userPos.lng], {
+    icon: L.divIcon({ className: "", iconSize: [28, 40], iconAnchor: [14, 37], html: '<span class="me-pin"></span>' }),
+    zIndexOffset: 1000
+  }).bindTooltip("You are here").addTo(markerLayer);
   const placed = rows.filter((r) => r.lat != null);
   placed.forEach((r) => {
     L.marker([r.lat, r.lng], {
@@ -124,22 +136,26 @@ $("#mapBtn").onclick = () => {
   mapOn = !mapOn;
   $("#mapBtn").classList.toggle("active", mapOn);
   mapBox.classList.toggle("hidden", !mapOn);
-  if (mapOn) setTimeout(() => { ensureMap(); leafletMap.invalidateSize(); render(); }, 50);
+  if (mapOn) { setTimeout(() => { ensureMap(); leafletMap.invalidateSize(); render(); }, 50); if (!accuracy) locateMe(false); }
 };
 
-$("#locateBtn").onclick = () => {
-  if (!navigator.geolocation) return toast("Location is not available in this browser");
-  toast("Finding your location…");
+function locateMe(showToast = true) {
+  if (!navigator.geolocation) return showToast && toast("Location is not available in this browser");
+  if (showToast) toast("Finding your exact location…");
   navigator.geolocation.getCurrentPosition(
     (p) => {
-      $("#locationInput").value = lastPlace = "Current location";
       userPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      accuracy = p.coords.accuracy;
+      $("#locationInput").value = lastPlace = "Current location";
       render();
-      toast("Showing listings near you");
+      if (leafletMap && mapOn) leafletMap.setView([userPos.lat, userPos.lng], 16);
+      if (showToast) toast("Showing your exact location");
     },
-    () => toast("Could not access location. Type an area instead.")
+    () => { if (showToast) toast("Could not get your location. Allow location access or type an area."); },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
   );
-};
+}
+$("#locateBtn").onclick = () => locateMe();
 
 const baseSearch = $("#searchBtn").onclick;
 $("#searchBtn").onclick = async () => { await geocodeLocation(); baseSearch(); };
