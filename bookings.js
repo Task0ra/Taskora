@@ -2,7 +2,7 @@
 const plainText = (h) => new DOMParser().parseFromString(String(h ?? ""), "text/html").documentElement.textContent;
 const STATUS_COLOR = { pending: "#b7791f", confirmed: "#2f7d4f", completed: "#2f7d4f", declined: "#b3261e", cancelled: "#777" };
 
-// Save every booking to Supabase when the booking form is submitted
+
 const baseOpenBooking = openBooking;
 openBooking = function (id) {
   baseOpenBooking(id);
