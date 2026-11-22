@@ -88,3 +88,45 @@ string toLowerCase(string text) {
 }
 
 bool readChoice(int& choice);
+
+// ==================== FIXED SERVICE LIST ====================
+
+const vector<string> SERVICES = {
+    "Driver",
+    "Teacher",
+    "Nurse",
+    "Househelp",
+    "Cook",
+    "Electrician",
+    "Plumber",
+    "Caretaker",
+    "Makeup Artist",
+    "Doctor",
+    "Painter"
+};
+
+void displayServiceOptions() {
+    cout << "\n===== AVAILABLE SERVICES =====\n";
+
+    for (size_t i = 0; i < SERVICES.size(); i++) {
+        cout << i + 1 << ". " << SERVICES[i] << '\n';
+    }
+}
+
+string chooseService() {
+    displayServiceOptions();
+
+    int choice;
+    cout << "Choose a service by entering its number: ";
+
+    if (!readChoice(choice)) {
+        return "";
+    }
+
+    if (choice < 1 || choice > static_cast<int>(SERVICES.size())) {
+        cout << "Invalid service choice. Please select a number from the list.\n";
+        return "";
+    }
+
+    return SERVICES[choice - 1];
+}
