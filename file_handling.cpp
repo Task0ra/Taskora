@@ -130,3 +130,58 @@ string chooseService() {
 
     return SERVICES[choice - 1];
 }
+
+// ==================== FILE HANDLING FUNCTIONS ====================
+
+vector<string> splitLine(const string& line) {
+    vector<string> fields;
+    string field;
+    stringstream ss(line);
+
+    while (getline(ss, field, '|')) {
+        fields.push_back(field);
+    }
+
+    return fields;
+}
+
+bool readPositiveAmount(string message, double& amount) {
+    cout << message;
+
+    if (!(cin >> amount) || amount <= 0) {
+        cout << "Please enter a valid amount greater than zero.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return false;
+    }
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    return true;
+}
+
+bool readChoice(int& choice) {
+    if (!(cin >> choice)) {
+        cout << "Please enter a valid number.\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return false;
+    }
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    return true;
+}
+
+bool idExists(string filename, string id) {
+    ifstream file(filename);
+    string line;
+
+    while (getline(file, line)) {
+        vector<string> fields = splitLine(line);
+
+        if (!fields.empty() && fields[0] == id) {
+            return true;
+        }
+    }
+
+    return false;
+}
