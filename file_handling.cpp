@@ -984,6 +984,21 @@ void customerMenu(string customerID) {
 
     cout << "Returning to the main menu...\n";
 }
+// ==================== CUSTOMER LOGIN ====================
+
+void customerLogin() {
+    cout << "\n===== CUSTOMER LOGIN =====\n";
+
+    string id = readText("Enter customer ID: ");
+    string password = readText("Enter password: ");
+
+    if (checkLogin("customers.txt", id, password, 0, 4)) {
+        cout << "Login successful!\n";
+        customerMenu(id);
+    } else {
+        cout << "Invalid customer ID or password.\n";
+    }
+}
 
 
 // ==================== PROVIDER LOGIN ====================
