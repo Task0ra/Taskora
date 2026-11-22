@@ -10,19 +10,6 @@
 
 using namespace std;
 
-// ==================== OOP: BASE CLASS ====================
-
-class User {
-public:
-    string id, name, phone, area, password;
-
-    virtual void display() const {
-        cout << "ID: " << id << "\nName: " << name << '\n';
-    }
-
-    virtual ~User() {}
-};
-
 // ==================== CUSTOMER CLASS ====================
 
 class Customer : public User {
