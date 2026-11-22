@@ -1018,3 +1018,70 @@ void providerLogin() {
         cout << "Invalid provider ID or password.\n";
     }
 }
+// ==================== MAIN PROGRAM ====================
+
+int main() {
+    int choice;
+
+    do {
+        cout << "\n========== TASKORA ==========\n";
+        cout << "1. Register Customer\n";
+        cout << "2. Register Service Provider\n";
+        cout << "3. Customer Login\n";
+        cout << "4. Service Provider Login\n";
+        cout << "5. Display Customers\n";
+        cout << "6. Display Service Providers\n";
+        cout << "7. Register Rental Property\n";
+        cout << "8. Display Rental Properties\n";
+        cout << "9. Exit\n";
+        cout << "Enter choice: ";
+
+        if (!readChoice(choice)) {
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                registerCustomer();
+                break;
+
+            case 2:
+                registerProvider();
+                break;
+
+            case 3:
+                customerLogin();
+                break;
+
+            case 4:
+                providerLogin();
+                break;
+
+            case 5:
+                displayCustomers();
+                break;
+
+            case 6:
+                displayProviders();
+                break;
+
+            case 7:
+                registerRentalProperty();
+                break;
+
+            case 8:
+                displayRentalProperties();
+                break;
+
+            case 9:
+                cout << "Thank you for using Taskora!\n";
+                break;
+
+            default:
+                cout << "Invalid choice. Try again.\n";
+        }
+
+    } while (choice != 9);
+
+    return 0;
+}
