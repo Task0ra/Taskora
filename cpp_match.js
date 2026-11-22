@@ -137,3 +137,47 @@ openAccount = async function () {
   $("#acctHistory").onclick = showHistory;
 };
 $("#accountBtn").onclick = openAccount;
+
+// ---------- Notifications bell ----------
+const bell = document.querySelector(".notification");
+bell.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><i></i>';
+const seenKey = (u) => "taskora_seen_" + u.id;
+
+async function loadNotes() {
+  const user = await sessionUser();
+  const dot = bell.querySelector("i");
+  if (!user) { dot.style.display = "none"; return []; }
+  const { data } = await supabaseClient.from("booking_requests").select("*")
+    .order("created_at", { ascending: false }).limit(20);
+  const notes = (data || []).flatMap((b) => {
+    if (b.provider_id === user.id && b.status === "pending")
+      return [{ b, kind: "incoming", text: `New booking request for ${b.listing_title}` }];
+    if (b.customer_id === user.id && b.status !== "pending")
+      return [{ b, kind: "mine", text: `Your booking for ${b.listing_title} is ${b.status}` }];
+    return [];
+  });
+  const seen = Number(localStorage.getItem(seenKey(user)) || 0);
+  const stamp = (n) => new Date(n.b.updated_at || n.b.created_at).getTime();
+  dot.style.display = notes.some((n) => stamp(n) > seen) ? "" : "none";
+  return notes;
+}
+
+bell.onclick = async () => {
+  const user = await sessionUser();
+  if (!user) return showAuthForm("login");
+  const notes = await loadNotes();
+  $("#modalContent").innerHTML = `<div class="modal-kicker">NOTIFICATIONS</div><h2 id="modalTitle">What's new</h2>
+    ${notes.map((n, i) => `<div class="booking-summary" style="display:block;margin-bottom:8px">
+      ${escapeHtml(n.text)}<br><small>${new Date(n.b.updated_at || n.b.created_at).toLocaleString()}</small><br>
+      <button type="button" class="book-btn" data-note="${i}">View</button></div>`).join("")
+      || `<p class="modal-description">You're all caught up.</p>`}`;
+  $("#modalBackdrop").classList.remove("hidden");
+  localStorage.setItem(seenKey(user), String(Date.now()));
+  bell.querySelector("i").style.display = "none";
+  document.querySelectorAll("[data-note]").forEach((b) => {
+    b.onclick = () => showBookings(notes[b.dataset.note].kind);
+  });
+};
+supabaseClient.auth.onAuthStateChange(() => setTimeout(loadNotes, 0));
+setInterval(loadNotes, 60000);
+loadNotes();
