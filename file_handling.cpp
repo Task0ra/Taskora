@@ -476,3 +476,62 @@ void providerMenu(string id) {
 
     cout << "Returning to the main menu...\n";
 }
+
+// ==================== RATINGS ====================
+
+double getAverageRating(string providerID, int& count) {
+    ifstream file("reviews.txt");
+    string line;
+    double total = 0;
+    count = 0;
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() >= 2 && f[0] == providerID) {
+            try {
+                int rating = stoi(f[1]);
+
+                if (rating >= 1 && rating <= 5) {
+                    total += rating;
+                    count++;
+                }
+            } catch (...) {
+            }
+        }
+    }
+
+    if (count == 0) {
+        return 0.0;
+    }
+
+    return total / count;
+}
+
+void submitRating() {
+    string providerID = readText("Enter provider ID to rate: ");
+
+    if (!idExists("providers.txt", providerID)) {
+        cout << "Provider not found.\n";
+        return;
+    }
+
+    int rating;
+
+    cout << "Enter rating from 1 to 5: ";
+
+    if (!readChoice(rating) || rating < 1 || rating > 5) {
+        cout << "Invalid rating. Enter a number from 1 to 5.\n";
+        return;
+    }
+
+    ofstream file("reviews.txt", ios::app);
+
+    if (!file) {
+        cout << "Unable to save rating.\n";
+        return;
+    }
+
+    file << providerID << "|" << rating << '\n';
+    cout << "Rating submitted successfully!\n";
+}
