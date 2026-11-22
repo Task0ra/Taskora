@@ -1,6 +1,7 @@
 // Taskora bookings add-on. Load AFTER app.js, map.js and provider.js.
 const plainText = (h) => new DOMParser().parseFromString(String(h ?? ""), "text/html").documentElement.textContent;
 const STATUS_COLOR = { pending: "#b7791f", confirmed: "#2f7d4f", completed: "#2f7d4f", declined: "#b3261e", cancelled: "#777" };
+const PAY_METHODS = ["UPI", "Card", "Cash after service"];
 
 // Save every booking to Supabase when the booking form is submitted
 const baseOpenBooking = openBooking;
@@ -11,7 +12,7 @@ openBooking = function (id) {
   const item = listings.find((l) => l.id === id);
   const original = form.onsubmit;
   form.querySelector(".booking-fields").insertAdjacentHTML("beforeend",
-    `<label>Payment method<select id="bookingPay"><option>UPI</option><option>Card</option><option>Cash on service</option></select></label>`);
+    `<label>Payment method<select id="bookingPay">${PAY_METHODS.map((m) => `<option>${m}</option>`).join("")}</select></label>`);
 
   // show up to 3 recent reviews for this listing
   supabaseClient.from("reviews").select("rating, comment").eq("listing_ref", String(item.id))
@@ -31,7 +32,7 @@ openBooking = function (id) {
     const label = btn.innerHTML;
     btn.disabled = true;
     const method = $("#bookingPay").value;
-    const advance = method === "Cash on service" ? 0 : Math.round(item.price * 0.2); // demo: 20% advance
+    const advance = method === "Cash after service" ? 0 : Math.round(item.price * 0.2); // demo: 20% advance
     const { data, error } = await supabaseClient.from("booking_requests").insert({
       customer_id: user.id, provider_id: item.ownerId || null, listing_ref: String(item.id),
       listing_title: plainText(item.title), provider_name: plainText(item.provider),
