@@ -67,3 +67,24 @@ public:
              << "\nStatus: " << availability << '\n';
     }
 };
+
+// ==================== GENERAL FUNCTIONS ====================
+
+string readText(string message) {
+    string value;
+    cout << message;
+    getline(cin, value);
+
+    replace(value.begin(), value.end(), '|', '/');
+    return value;
+}
+
+string toLowerCase(string text) {
+    transform(text.begin(), text.end(), text.begin(),
+        [](unsigned char c) {
+            return static_cast<char>(tolower(c));
+        });
+    return text;
+}
+
+bool readChoice(int& choice);
