@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <cctype>
-using namespace standard
+using namespace std
 
 bool validText(string s)
 {
