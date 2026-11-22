@@ -378,3 +378,101 @@ bool checkLogin(string filename, string id, string password,
 
     return false;
 }
+
+// ==================== PROVIDER DUTY STATUS ====================
+
+bool updateProviderStatus(string id, string newStatus) {
+    ifstream file("providers.txt");
+
+    if (!file) {
+        cout << "Unable to open providers.txt.\n";
+        return false;
+    }
+
+    ofstream temp("providers_temp.txt");
+
+    if (!temp) {
+        cout << "Unable to create temporary provider file.\n";
+        return false;
+    }
+
+    string line;
+    bool updated = false;
+
+    while (getline(file, line)) {
+        vector<string> f = splitLine(line);
+
+        if (f.size() >= 7 && f[0] == id) {
+            f[6] = newStatus;
+            updated = true;
+
+            if (f.size() == 7) {
+                f.push_back("0");
+            }
+        }
+
+        if (f.size() >= 7) {
+            temp << f[0] << "|" << f[1] << "|" << f[2]
+                 << "|" << f[3] << "|" << f[4]
+                 << "|" << f[5] << "|" << f[6];
+
+            if (f.size() >= 8) {
+                temp << "|" << f[7];
+            }
+
+            temp << '\n';
+        }
+    }
+
+    file.close();
+    temp.close();
+
+    if (!updated) {
+        remove("providers_temp.txt");
+        cout << "Provider record not found.\n";
+        return false;
+    }
+
+    if (remove("providers.txt") != 0) {
+        cout << "Could not update provider file. Close any program "
+             << "using the file and try again.\n";
+        remove("providers_temp.txt");
+        return false;
+    }
+
+    if (rename("providers_temp.txt", "providers.txt") != 0) {
+        cout << "Could not rename the temporary file.\n";
+        return false;
+    }
+
+    return true;
+}
+
+// ==================== PROVIDER MENU ====================
+
+void providerMenu(string id) {
+    int choice;
+
+    cout << "\n===== PROVIDER MENU =====\n";
+    cout << "1. Go On Duty\n";
+    cout << "2. Go Off Duty\n";
+    cout << "Enter choice: ";
+
+    if (!readChoice(choice)) {
+        return;
+    }
+
+    if (choice == 1) {
+        if (updateProviderStatus(id, "On Duty")) {
+            cout << "You are now On Duty.\n";
+        }
+    } else if (choice == 2) {
+        if (updateProviderStatus(id, "Off Duty")) {
+            cout << "You are now Off Duty.\n";
+        }
+    } else {
+        cout << "Invalid choice.\n";
+    }
+
+    cout << "Returning to the main menu...\n";
+}
